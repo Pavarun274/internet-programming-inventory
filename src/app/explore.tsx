@@ -1,180 +1,271 @@
-import { Image } from 'expo-image';
-import { SymbolView } from 'expo-symbols';
-import { Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { FlatList, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { ExternalLink } from '@/components/external-link';
+import { AppHeader } from '@/components/app-header';
+import { CategoryChip } from '@/components/category-chip';
+import { ProductCard } from '@/components/product-card';
+import { SearchBar } from '@/components/search-bar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Collapsible } from '@/components/ui/collapsible';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { CATEGORIES } from '@/constants/inventory-data';
+import { MaxContentWidth, SemanticColors, Spacing } from '@/constants/theme';
+import { SortOption } from '@/contexts/inventory-context';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useInventory } from '@/hooks/use-inventory';
 import { useTheme } from '@/hooks/use-theme';
 
-export default function TabTwoScreen() {
-  const safeAreaInsets = useSafeAreaInsets();
-  const insets = {
-    ...safeAreaInsets,
-    bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
-  };
-  const theme = useTheme();
+const SORT_OPTIONS: { id: SortOption; label: string }[] = [
+  { id: 'default', label: 'Default' },
+  { id: 'price-asc', label: 'Price: Low to High' },
+  { id: 'price-desc', label: 'Price: High to Low' },
+  { id: 'name-asc', label: 'Name: A-Z' },
+  { id: 'qty-asc', label: 'Low Stock First' },
+];
 
-  const contentPlatformStyle = Platform.select({
-    android: {
-      paddingTop: insets.top,
-      paddingLeft: insets.left,
-      paddingRight: insets.right,
-      paddingBottom: insets.bottom,
-    },
-    web: {
-      paddingTop: Spacing.six,
-      paddingBottom: Spacing.four,
-    },
-  });
+export default function ProductsScreen() {
+  const theme = useTheme();
+  const scheme = useColorScheme();
+  const isDark = scheme === 'dark';
+  const {
+    filteredProducts,
+    searchQuery,
+    setSearchQuery,
+    selectedCategory,
+    setSelectedCategory,
+    sortOption,
+    setSortOption,
+  } = useInventory();
+
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
+
+  const paddingBottom = Platform.select({ ios: 90, android: 100, web: 24, default: 24 });
 
   return (
-    <ScrollView
-      style={[styles.scrollView, { backgroundColor: theme.background }]}
-      contentInset={insets}
-      contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}>
-      <ThemedView style={styles.container}>
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText type="subtitle">Explore</ThemedText>
-          <ThemedText style={styles.centerText} themeColor="textSecondary">
-            This starter app includes example{'\n'}code to help you get started.
-          </ThemedText>
+    <ThemedView style={styles.flex}>
+      <AppHeader title="Products" />
+      <View style={[styles.flex]}>
+        {/* Filter Header */}
+        <View
+          style={[
+            styles.headerSection,
+            {
+              backgroundColor: theme.background,
+              borderBottomColor: isDark ? '#27272A' : '#E4E4E7',
+            },
+          ]}
+        >
+          <View style={[styles.centeredRow, { maxWidth: MaxContentWidth }]}>
+            <View style={styles.titleRow}>
+              <View>
+                <ThemedText style={[styles.title, { color: theme.text }]}>Products</ThemedText>
+                <ThemedText style={[styles.subtitle, { color: theme.textSecondary }]}>
+                  {filteredProducts.length} items
+                </ThemedText>
+              </View>
+            </View>
 
-          <ExternalLink href="https://docs.expo.dev" asChild>
-            <Pressable style={({ pressed }) => pressed && styles.pressed}>
-              <ThemedView type="backgroundElement" style={styles.linkButton}>
-                <ThemedText type="link">Expo documentation</ThemedText>
-                <SymbolView
-                  tintColor={theme.text}
-                  name={{ ios: 'arrow.up.right.square', android: 'link', web: 'link' }}
-                  size={12}
-                />
-              </ThemedView>
-            </Pressable>
-          </ExternalLink>
-        </ThemedView>
-
-        <ThemedView style={styles.sectionsWrapper}>
-          <Collapsible title="File-based routing">
-            <ThemedText type="small">
-              This app has two screens: <ThemedText type="code">src/app/index.tsx</ThemedText> and{' '}
-              <ThemedText type="code">src/app/explore.tsx</ThemedText>
-            </ThemedText>
-            <ThemedText type="small">
-              The layout file in <ThemedText type="code">src/app/_layout.tsx</ThemedText> sets up
-              the tab navigator.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/router/introduction">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Android, iOS, and web support">
-            <ThemedView type="backgroundElement" style={styles.collapsibleContent}>
-              <ThemedText type="small">
-                You can open this project on Android, iOS, and the web. To open the web version,
-                press <ThemedText type="smallBold">w</ThemedText> in the terminal running this
-                project.
-              </ThemedText>
-              <Image
-                source={require('@/assets/images/tutorial-web.png')}
-                style={styles.imageTutorial}
+            {/* Search Row */}
+            <View style={styles.searchRow}>
+              <SearchBar
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Search products, SKU..."
+                style={styles.searchBar}
               />
-            </ThemedView>
-          </Collapsible>
+              <Pressable
+                onPress={() => setShowSortDropdown(!showSortDropdown)}
+                style={({ pressed }) => [
+                  styles.sortButton,
+                  {
+                    backgroundColor: theme.backgroundSelected,
+                    borderColor: isDark ? '#27272A' : '#E4E4E7',
+                    opacity: pressed ? 0.75 : 1,
+                  },
+                ]}
+              >
+                <ThemedText style={styles.sortButtonText}>⇅</ThemedText>
+              </Pressable>
+            </View>
 
-          <Collapsible title="Images">
-            <ThemedText type="small">
-              For static images, you can use the <ThemedText type="code">@2x</ThemedText> and{' '}
-              <ThemedText type="code">@3x</ThemedText> suffixes to provide files for different
-              screen densities.
-            </ThemedText>
-            <Image source={require('@/assets/images/react-logo.png')} style={styles.imageReact} />
-            <ExternalLink href="https://reactnative.dev/docs/images">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
+            {/* Sort Dropdown Selector */}
+            {showSortDropdown && (
+              <View
+                style={[
+                  styles.sortDropdown,
+                  {
+                    backgroundColor: isDark ? SemanticColors.cardDark : SemanticColors.card,
+                    borderColor: isDark ? '#27272A' : '#E4E4E7',
+                  },
+                ]}
+              >
+                {SORT_OPTIONS.map((opt) => (
+                  <Pressable
+                    key={opt.id}
+                    onPress={() => {
+                      setSortOption(opt.id);
+                      setShowSortDropdown(false);
+                    }}
+                    style={({ pressed }) => [
+                      styles.sortOptionItem,
+                      sortOption === opt.id && { backgroundColor: isDark ? '#27272A' : '#F4F4F5' },
+                      pressed && { opacity: 0.7 },
+                    ]}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.sortOptionText,
+                        { color: theme.text },
+                        sortOption === opt.id && { color: SemanticColors.primary, fontWeight: '700' },
+                      ]}
+                    >
+                      {opt.label}
+                    </ThemedText>
+                  </Pressable>
+                ))}
+              </View>
+            )}
 
-          <Collapsible title="Light and dark mode components">
-            <ThemedText type="small">
-              This template has light and dark mode support. The{' '}
-              <ThemedText type="code">useColorScheme()</ThemedText> hook lets you inspect what the
-              user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
+            {/* Category Chips */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoriesScroll}
+            >
+              {CATEGORIES.map((cat) => (
+                <CategoryChip
+                  key={cat.id}
+                  label={cat.name}
+                  isSelected={selectedCategory === cat.id}
+                  color={cat.color}
+                  onPress={() => setSelectedCategory(cat.id)}
+                />
+              ))}
+            </ScrollView>
+          </View>
+        </View>
 
-          <Collapsible title="Animations">
-            <ThemedText type="small">
-              This template includes an example of an animated component. The{' '}
-              <ThemedText type="code">src/components/ui/collapsible.tsx</ThemedText> component uses
-              the powerful <ThemedText type="code">react-native-reanimated</ThemedText> library to
-              animate opening this hint.
-            </ThemedText>
-          </Collapsible>
-        </ThemedView>
-        {Platform.OS === 'web' && <WebBadge />}
-      </ThemedView>
-    </ScrollView>
+        {/* Product List */}
+        <FlatList
+          data={filteredProducts}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={[
+            styles.listContent,
+            { paddingBottom, maxWidth: MaxContentWidth, alignSelf: 'center', width: '100%' },
+          ]}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <ProductCard
+              product={item}
+              onPress={() => router.push(`/add?id=${item.id}` as any)}
+            />
+          )}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <ThemedText style={styles.emptyEmoji}>📭</ThemedText>
+              <ThemedText style={[styles.emptyTitle, { color: theme.text }]}>
+                No products found
+              </ThemedText>
+              <ThemedText style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
+                Try adjusting your search or filters
+              </ThemedText>
+            </View>
+          }
+        />
+      </View>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollView: {
+  flex: { flex: 1 },
+  headerSection: {
+    paddingHorizontal: Spacing.three,
+    paddingBottom: Spacing.two,
+    borderBottomWidth: 1,
+    alignItems: 'center',
+  },
+  centeredRow: {
+    width: '100%',
+    gap: Spacing.two,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
+    lineHeight: 34,
+  },
+  subtitle: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  searchBar: {
     flex: 1,
   },
-  contentContainer: {
+  searchRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  container: {
-    maxWidth: MaxContentWidth,
-    flexGrow: 1,
-  },
-  titleContainer: {
-    gap: Spacing.three,
     alignItems: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.six,
-  },
-  centerText: {
-    textAlign: 'center',
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-  linkButton: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.five,
-    justifyContent: 'center',
-    gap: Spacing.one,
-    alignItems: 'center',
-  },
-  sectionsWrapper: {
-    gap: Spacing.five,
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.three,
-  },
-  collapsibleContent: {
-    alignItems: 'center',
-  },
-  imageTutorial: {
+    gap: 10,
     width: '100%',
-    aspectRatio: 296 / 171,
-    borderRadius: Spacing.three,
-    marginTop: Spacing.two,
   },
-  imageReact: {
-    width: 100,
-    height: 100,
-    alignSelf: 'center',
+  sortButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sortButtonText: {
+    fontSize: 20,
+  },
+  sortDropdown: {
+    width: '100%',
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 8,
+    gap: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+    zIndex: 20,
+  },
+  sortOptionItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+  },
+  sortOptionText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  categoriesScroll: {
+    gap: Spacing.two,
+    paddingVertical: Spacing.one,
+  },
+  listContent: {
+    padding: Spacing.three,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingTop: 80,
+    gap: Spacing.two,
+  },
+  emptyEmoji: {
+    fontSize: 48,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
   },
 });

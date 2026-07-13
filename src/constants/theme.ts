@@ -9,20 +9,39 @@ import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    text: '#09090B',           // zinc-950
+    background: '#FAFAFA',     // zinc-50
+    backgroundElement: '#FFFFFF',
+    backgroundSelected: '#F4F4F5', // zinc-100
+    textSecondary: '#71717A',  // zinc-500
   },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    text: '#FAFAFA',           // zinc-50
+    background: '#09090B',     // zinc-950
+    backgroundElement: '#18181B', // zinc-900
+    backgroundSelected: '#27272A', // zinc-800
+    textSecondary: '#A1A1AA',  // zinc-400
   },
 } as const;
+
+/** Semantic / accent colors */
+export const SemanticColors = {
+  primary: '#6366F1',          // indigo-500
+  primaryLight: '#EEF2FF',     // indigo-50 (light mode)
+  primaryDark: '#3730A3',      // indigo-800 (dark mode tint)
+  success: '#22C55E',          // green-500
+  successLight: '#F0FDF4',
+  successDark: '#14532D',
+  warning: '#F59E0B',          // amber-500
+  warningLight: '#FFFBEB',
+  warningDark: '#451A03',
+  danger: '#EF4444',           // red-500
+  dangerLight: '#FEF2F2',
+  dangerDark: '#450A0A',
+  card: '#FFFFFF',
+  cardDark: '#18181B',
+} as const;
+
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
