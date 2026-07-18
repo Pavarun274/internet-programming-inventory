@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import { View, StyleSheet, Platform } from 'react-native';
+import { SymbolView } from 'expo-symbols';
 import { ThemedText } from './themed-text';
 import { Colors, SemanticColors } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -40,7 +41,12 @@ export default function AppTabs() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
-            <ThemedText style={{ fontSize: 22, color, opacity: focused ? 1 : 0.5 }}>🏠</ThemedText>
+            <SymbolView
+              name={{ ios: 'house.fill', android: 'home', web: 'home' }}
+              size={22}
+              tintColor={color}
+              style={{ opacity: focused ? 1 : 0.5 }}
+            />
           ),
         }}
       />
@@ -50,7 +56,12 @@ export default function AppTabs() {
           title: 'Add',
           tabBarIcon: ({ color, focused }) => (
             <View style={styles.addCircle}>
-              <ThemedText style={styles.addIcon}>➕</ThemedText>
+              <SymbolView
+                name={{ ios: 'plus', android: 'add', web: 'add' }}
+                size={18}
+                tintColor="#fff"
+                weight="bold"
+              />
             </View>
           ),
           tabBarLabel: () => null,
@@ -61,7 +72,12 @@ export default function AppTabs() {
         options={{
           title: 'Product',
           tabBarIcon: ({ color, focused }) => (
-            <ThemedText style={{ fontSize: 22, color, opacity: focused ? 1 : 0.5 }}>📦</ThemedText>
+            <SymbolView
+              name={{ ios: 'shippingbox.fill', android: 'inventory', web: 'inventory' }}
+              size={22}
+              tintColor={color}
+              style={{ opacity: focused ? 1 : 0.5 }}
+            />
           ),
         }}
       />
@@ -70,7 +86,12 @@ export default function AppTabs() {
         options={{
           title: 'Categories',
           tabBarIcon: ({ color, focused }) => (
-            <ThemedText style={{ fontSize: 22, color, opacity: focused ? 1 : 0.5 }}>🗂️</ThemedText>
+            <SymbolView
+              name={{ ios: 'square.grid.2x2.fill', android: 'grid_view', web: 'grid_view' }}
+              size={22}
+              tintColor={color}
+              style={{ opacity: focused ? 1 : 0.5 }}
+            />
           ),
         }}
       />

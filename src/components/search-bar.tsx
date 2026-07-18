@@ -2,6 +2,7 @@ import { StyleSheet, TextInput, View, ViewStyle } from 'react-native';
 import { SemanticColors } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { SymbolView } from 'expo-symbols';
 import { ThemedText } from './themed-text';
 
 type SearchBarProps = {
@@ -28,7 +29,11 @@ export function SearchBar({ value, onChangeText, placeholder = 'Search...', styl
         style,
       ]}
     >
-      <ThemedText style={[styles.icon, { color: theme.textSecondary }]}>🔍</ThemedText>
+      <SymbolView
+        name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }}
+        size={16}
+        tintColor={theme.textSecondary}
+      />
       <TextInput
         style={[styles.input, { color: theme.text }]}
         value={value}

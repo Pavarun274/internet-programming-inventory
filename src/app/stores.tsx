@@ -1,5 +1,6 @@
 import { Platform, ScrollView, StyleSheet, View, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SymbolView } from 'expo-symbols';
 
 import { AppHeader } from '@/components/app-header';
 import { ThemedText } from '@/components/themed-text';
@@ -8,6 +9,12 @@ import { MaxContentWidth, SemanticColors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useInventory } from '@/hooks/use-inventory';
+
+const STORE_ICONS: Record<string, any> = {
+  Warehouse: { ios: 'building.2', android: 'domain', web: 'domain' },
+  Fulfillment: { ios: 'shippingbox', android: 'inventory', web: 'inventory' },
+  default: { ios: 'storefront', android: 'storefront', web: 'storefront' },
+};
 
 const STORES_DATA = [
   {
@@ -90,9 +97,11 @@ export default function StoresScreen() {
                   >
                     <View style={styles.storeHeader}>
                       <View style={styles.storeTitleWrapper}>
-                        <ThemedText style={[styles.storeIcon]}>
-                          {store.type === 'Warehouse' ? '🏭' : store.type === 'Fulfillment' ? '📦' : '🏪'}
-                        </ThemedText>
+                        <SymbolView
+                          name={STORE_ICONS[store.type] || STORE_ICONS.default}
+                          size={24}
+                          tintColor={theme.text}
+                        />
                         <View>
                           <ThemedText style={[styles.storeName, { color: theme.text }]}>
                             {store.name}

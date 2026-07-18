@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, View, Image } from 'react-native';
+import { SymbolView } from 'expo-symbols';
 import { SemanticColors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
@@ -11,11 +12,12 @@ type ProductCardProps = {
   onPress?: () => void;
 };
 
-const CATEGORY_ICONS: Record<string, string> = {
-  electronics: '💻',
-  clothing: '👕',
-  food: '☕',
-  tools: '🔧',
+const CATEGORY_ICONS: Record<string, any> = {
+  electronics: { ios: 'laptopcomputer', android: 'laptop', web: 'laptop' },
+  clothing: { ios: 'tshirt', android: 'checkroom', web: 'checkroom' },
+  food: { ios: 'cup.and.saucer', android: 'local_cafe', web: 'local_cafe' },
+  tools: { ios: 'wrench.and.screwdriver', android: 'build', web: 'build' },
+  default: { ios: 'shippingbox', android: 'inventory', web: 'inventory' },
 };
 
 export function ProductCard({ product, onPress }: ProductCardProps) {
@@ -66,7 +68,7 @@ export function ProductCard({ product, onPress }: ProductCardProps) {
         {
           backgroundColor: cardBg,
           shadowColor: isDark ? '#000' : '#E4E4E7',
-          opacity: pressed ? 0.85 : 1,
+          opacity: pressed ? 0.8 : 1,
         },
       ]}
     >
@@ -75,9 +77,11 @@ export function ProductCard({ product, onPress }: ProductCardProps) {
         {product.image ? (
           <Image source={{ uri: product.image }} style={styles.productImage} />
         ) : (
-          <ThemedText style={styles.iconEmoji}>
-            {CATEGORY_ICONS[product.category] ?? '📦'}
-          </ThemedText>
+          <SymbolView
+            name={CATEGORY_ICONS[product.category] ?? CATEGORY_ICONS.default}
+            size={22}
+            tintColor={catStyle.color}
+          />
         )}
       </View>
 

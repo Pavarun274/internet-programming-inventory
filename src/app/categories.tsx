@@ -1,5 +1,6 @@
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SymbolView } from 'expo-symbols';
 
 import { AppHeader } from '@/components/app-header';
 import { ThemedText } from '@/components/themed-text';
@@ -12,11 +13,12 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useInventory } from '@/hooks/use-inventory';
 import { router } from 'expo-router';
 
-const CATEGORY_ICONS: Record<string, string> = {
-  electronics: '💻',
-  clothing: '👕',
-  food: '☕',
-  tools: '🔧',
+const CATEGORY_ICONS: Record<string, any> = {
+  electronics: { ios: 'laptopcomputer', android: 'laptop', web: 'laptop' },
+  clothing: { ios: 'tshirt', android: 'checkroom', web: 'checkroom' },
+  food: { ios: 'cup.and.saucer', android: 'local_cafe', web: 'local_cafe' },
+  tools: { ios: 'wrench.and.screwdriver', android: 'build', web: 'build' },
+  default: { ios: 'shippingbox', android: 'inventory', web: 'inventory' },
 };
 
 export default function CategoriesScreen() {
@@ -31,34 +33,35 @@ export default function CategoriesScreen() {
   const paddingBottom = Platform.select({ ios: 90, android: 100, web: 24, default: 24 });
 
   const getCategoryStyles = (id: string) => {
+    const icon = CATEGORY_ICONS[id] || CATEGORY_ICONS.default;
     switch (id) {
       case 'electronics':
         return {
-          icon: CATEGORY_ICONS[id] || '📦',
+          icon,
           color: SemanticColors.primary,
           bg: isDark ? SemanticColors.primaryDark : SemanticColors.primaryLight,
         };
       case 'clothing':
         return {
-          icon: CATEGORY_ICONS[id] || '📦',
+          icon,
           color: '#EC4899', // pink-500
           bg: isDark ? '#831843' : '#FCE7F3', // pink-900 / pink-100
         };
       case 'food':
         return {
-          icon: CATEGORY_ICONS[id] || '📦',
+          icon,
           color: SemanticColors.warning,
           bg: isDark ? SemanticColors.warningDark : SemanticColors.warningLight,
         };
       case 'tools':
         return {
-          icon: CATEGORY_ICONS[id] || '📦',
+          icon,
           color: SemanticColors.success,
           bg: isDark ? SemanticColors.successDark : SemanticColors.successLight,
         };
       default:
         return {
-          icon: '📦',
+          icon,
           color: SemanticColors.primary,
           bg: isDark ? SemanticColors.primaryDark : SemanticColors.primaryLight,
         };
@@ -94,7 +97,11 @@ export default function CategoriesScreen() {
                     ]}
                   >
                     <View style={[styles.catIconWrap, { backgroundColor: meta.bg }]}>
-                      <ThemedText style={styles.catIcon}>{meta.icon}</ThemedText>
+                      <SymbolView
+                        name={meta.icon}
+                        size={24}
+                        tintColor={meta.color}
+                      />
                     </View>
                     <ThemedText style={[styles.catName, { color: theme.text }]}>
                       {cat.name}

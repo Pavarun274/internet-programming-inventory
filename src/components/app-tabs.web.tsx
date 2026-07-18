@@ -7,6 +7,7 @@ import {
   TabListProps,
 } from 'expo-router/ui';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { SymbolView } from 'expo-symbols';
 
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
@@ -15,10 +16,10 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { SemanticColors, Spacing } from '@/constants/theme';
 
 const TABS = [
-  { name: 'home', href: '/', icon: '🏠', label: 'Home' },
-  { name: 'add', href: '/add', icon: '➕', label: 'Add', isAdd: true },
-  { name: 'explore', href: '/explore', icon: '📦', label: 'Product' },
-  { name: 'categories', href: '/categories', icon: '🗂️', label: 'Categories' },
+  { name: 'home', href: '/', icon: { ios: 'house.fill', android: 'home', web: 'home' }, label: 'Home' },
+  { name: 'add', href: '/add', icon: { ios: 'plus', android: 'add', web: 'add' }, label: 'Add', isAdd: true },
+  { name: 'explore', href: '/explore', icon: { ios: 'shippingbox.fill', android: 'inventory', web: 'inventory' }, label: 'Product' },
+  { name: 'categories', href: '/categories', icon: { ios: 'square.grid.2x2.fill', android: 'grid_view', web: 'grid_view' }, label: 'Categories' },
 ];
 
 const HIDDEN_TABS = [
@@ -51,7 +52,7 @@ export default function AppTabs() {
   );
 }
 
-function TabBtn({ children, isFocused, icon, label, isAdd, ...props }: TabTriggerSlotProps & { icon: string; label: string; isAdd?: boolean }) {
+function TabBtn({ children, isFocused, icon, label, isAdd, ...props }: TabTriggerSlotProps & { icon: any; label: string; isAdd?: boolean }) {
   const theme = useTheme();
   const active = SemanticColors.primary;
 
@@ -62,13 +63,22 @@ function TabBtn({ children, isFocused, icon, label, isAdd, ...props }: TabTrigge
     >
       {isAdd ? (
         <View style={styles.addCircle}>
-          <ThemedText style={styles.addIcon}>{icon}</ThemedText>
+          <SymbolView
+            name={icon}
+            size={18}
+            tintColor="#fff"
+            weight="bold"
+          />
         </View>
       ) : (
         <>
-          <ThemedText style={[styles.tabIcon, { opacity: isFocused ? 1 : 0.45 }]}>
-            {icon}
-          </ThemedText>
+          <View style={{ opacity: isFocused ? 1 : 0.45 }}>
+            <SymbolView
+              name={icon}
+              size={22}
+              tintColor={isFocused ? active : theme.textSecondary}
+            />
+          </View>
           <ThemedText
             style={[
               styles.tabLabel,

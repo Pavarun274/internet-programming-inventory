@@ -1,4 +1,5 @@
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { SymbolView } from 'expo-symbols';
 
 import { AppHeader } from '@/components/app-header';
 import { ThemedText } from '@/components/themed-text';
@@ -16,8 +17,12 @@ const CHART_DATA = [
   { label: 'Shipped', value: 0.58, color: '#C7D2FE' },    // Indigo-200
 ];
 
-const ACTIVITY_ICONS: Record<string, string> = {
-  added: '➕', removed: '➖', updated: '✏️', restocked: '🔄',
+const ACTIVITY_ICONS: Record<string, any> = {
+  added: { ios: 'plus', android: 'add', web: 'add' },
+  removed: { ios: 'minus', android: 'remove', web: 'remove' },
+  updated: { ios: 'pencil', android: 'edit', web: 'edit' },
+  restocked: { ios: 'arrow.clockwise', android: 'refresh', web: 'refresh' },
+  default: { ios: 'doc.text', android: 'description', web: 'description' },
 };
 const ACTIVITY_COLORS: Record<string, string> = {
   added: SemanticColors.success,
@@ -186,9 +191,11 @@ export default function DashboardScreen() {
                           { backgroundColor: (ACTIVITY_COLORS[act.type] || SemanticColors.primary) + '20' },
                         ]}
                       >
-                        <ThemedText style={styles.txEmoji}>
-                          {ACTIVITY_ICONS[act.type] || '📝'}
-                        </ThemedText>
+                        <SymbolView
+                          name={ACTIVITY_ICONS[act.type] || ACTIVITY_ICONS.default}
+                          size={16}
+                          tintColor={ACTIVITY_COLORS[act.type] || SemanticColors.primary}
+                        />
                       </View>
                       <View style={styles.txInfo}>
                         <ThemedText style={[styles.txProduct, { color: theme.text }]}>
