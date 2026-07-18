@@ -46,8 +46,17 @@ Starts Metro bundler and runs the web app on `http://localhost:8081`.
   ```
 
 ### 3. iOS Development
-- Note: This system does not have full Xcode.app installed. Only Xcode Command Line Tools are active.
-- To test on iOS, developers/agents must use **Expo Go** on a physical device connected to the same Wi-Fi network and open the Metro server URL (e.g., `exp://<host-ip>:8081`).
+- Xcode is installed. You can run and test the app on the iOS Simulator.
+- Start the iOS Simulator:
+  ```bash
+  open -a Simulator
+  ```
+- Deploy to the simulator:
+  ```bash
+  npm run ios
+  ```
+- **Port Conflict Workaround**: If the Metro server is already running, do not run `npm run ios` again. Send input `i` to the Metro server console to open the app on the simulator.
+- Alternatively, you can test on a physical iOS device using **Expo Go** by opening the Metro server URL (e.g., `exp://<host-ip>:8081`).
 
 ### 4. Code Quality & Linting
 ```bash
