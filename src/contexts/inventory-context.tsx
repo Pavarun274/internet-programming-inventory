@@ -26,7 +26,7 @@ type InventoryContextType = {
   };
 };
 
-const STORAGE_KEY = 'inventory_products';
+const STORAGE_KEY = 'inventory_products_v2';
 const ACTIVITIES_KEY = 'inventory_activities';
 
 export const InventoryContext = createContext<InventoryContextType | undefined>(undefined);
