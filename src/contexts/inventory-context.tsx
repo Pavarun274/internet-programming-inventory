@@ -44,7 +44,18 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       try {
         const storedProducts = await AsyncStorage.getItem(STORAGE_KEY);
         if (storedProducts) {
-          setProducts(JSON.parse(storedProducts));
+          const parsed = JSON.parse(storedProducts);
+          const migrated = parsed.map((p: any) => {
+            if (!p.storeIds) {
+              const { storeId, ...rest } = p;
+              return {
+                ...rest,
+                storeIds: storeId ? [storeId] : ['s1'],
+              };
+            }
+            return p;
+          });
+          setProducts(migrated);
         } else {
           await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(PRODUCTS));
         }

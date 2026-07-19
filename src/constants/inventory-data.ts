@@ -15,6 +15,7 @@ export type Product = {
   name: string;
   sku: string;
   category: string;
+  storeIds: string[];
   quantity: number;
   minQuantity: number;
   price: number;
@@ -32,6 +33,46 @@ export type RecentActivity = {
   timestamp: string;
   user: string;
 };
+
+export type Store = {
+  id: string;
+  name: string;
+  address: string;
+  manager: string;
+  phone: string;
+  type: string;
+  status: string;
+};
+
+export const STORES: Store[] = [
+  {
+    id: 's1',
+    name: 'Main Warehouse - Bangkok',
+    address: '123 Sukhumvit Rd, Khlong Toei, Bangkok 10110',
+    manager: 'Sarah Wilson',
+    phone: '+66 2 123 4567',
+    type: 'Warehouse',
+    status: 'Operational',
+  },
+  {
+    id: 's2',
+    name: 'Retail Outlet - Siam Paragon',
+    address: '991 Rama I Rd, Pathum Wan, Bangkok 10330',
+    manager: 'John Davis',
+    phone: '+66 2 987 6543',
+    type: 'Retail Store',
+    status: 'Operational',
+  },
+  {
+    id: 's3',
+    name: 'Fulfillment Center - Samut Prakan',
+    address: '456 Bangna-Trad Rd, Bang Phli, Samut Prakan 10540',
+    manager: 'Michael Chen',
+    phone: '+66 2 444 8888',
+    type: 'Fulfillment',
+    status: 'Restocking',
+  },
+];
 
 export const CATEGORIES: Category[] = [
   { id: 'all', name: 'All', color: '#208AEF', icon: 'square.grid.2x2', count: 24 },
