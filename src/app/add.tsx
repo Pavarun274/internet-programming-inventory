@@ -1,14 +1,14 @@
-import { Platform, Pressable, ScrollView, StyleSheet, TextInput, View, Image } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Platform, Pressable, ScrollView, StyleSheet, TextInput, View, Image, Modal } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import { SymbolView } from 'expo-symbols';
 
 import { AppHeader } from '@/components/app-header';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, SemanticColors, Spacing } from '@/constants/theme';
-import { CATEGORIES } from '@/constants/inventory-data';
+import { CATEGORIES, STORES } from '@/constants/inventory-data';
 import { useTheme } from '@/hooks/use-theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { CategoryChip } from '@/components/category-chip';
@@ -18,6 +18,7 @@ type FormField = {
   name: string;
   sku: string;
   category: string;
+  storeIds: string[];
   quantity: string;
   minQuantity: string;
   price: string;
@@ -30,6 +31,7 @@ const INITIAL_FORM: FormField = {
   name: '',
   sku: '',
   category: 'electronics',
+  storeIds: ['s1'],
   quantity: '',
   minQuantity: '',
   price: '',
@@ -49,13 +51,18 @@ export default function AddProductScreen() {
   const [form, setForm] = useState<FormField>(INITIAL_FORM);
   const [saved, setSaved] = useState(false);
   const [deleted, setDeleted] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  const selectedStoreNames = STORES.filter((s) => form.storeIds && form.storeIds.includes(s.id))
+    .map((s) => s.name.split(' - ')[0])
+    .join(', ');
 
   const paddingBottom = Platform.select({ ios: 90, android: 100, web: 24, default: 24 });
 
   const inputBg = isDark ? SemanticColors.cardDark : SemanticColors.card;
   const borderColor = isDark ? '#27272A' : '#E4E4E7';
 
-  // Load product if editing
+  // Load product data when editing, reset when adding new
   useEffect(() => {
     if (isEditMode && id) {
       const product = getProductById(id);
@@ -64,6 +71,7 @@ export default function AddProductScreen() {
           name: product.name,
           sku: product.sku,
           category: product.category,
+          storeIds: product.storeIds || ['s1'],
           quantity: product.quantity.toString(),
           minQuantity: product.minQuantity.toString(),
           price: product.price.toString(),
@@ -75,7 +83,8 @@ export default function AddProductScreen() {
     } else {
       setForm(INITIAL_FORM);
     }
-  }, [isEditMode, id, getProductById]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   async function pickImage() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -100,11 +109,12 @@ export default function AddProductScreen() {
     setForm((prev) => ({ ...prev, image: '' }));
   }
 
-  function handleSave() {
+  function executeSave() {
     const parsedProduct = {
       name: form.name.trim(),
       sku: form.sku.trim(),
       category: form.category,
+      storeIds: form.storeIds,
       quantity: parseInt(form.quantity, 10) || 0,
       minQuantity: parseInt(form.minQuantity, 10) || 0,
       price: parseFloat(form.price) || 0,
@@ -122,8 +132,12 @@ export default function AddProductScreen() {
     setSaved(true);
     setTimeout(() => {
       setSaved(false);
-      router.back();
+      router.navigate('/explore');
     }, 1500);
+  }
+
+  function handleSave() {
+    setShowConfirmModal(true);
   }
 
   function handleDelete() {
@@ -132,12 +146,18 @@ export default function AddProductScreen() {
       setDeleted(true);
       setTimeout(() => {
         setDeleted(false);
-        router.back();
+        router.navigate('/explore');
       }, 1500);
     }
   }
 
-  const isFormValid = form.name.trim() && form.sku.trim() && form.quantity && form.price;
+  const isFormValid =
+    form.name.trim() &&
+    form.sku.trim() &&
+    form.quantity &&
+    form.price &&
+    form.storeIds &&
+    form.storeIds.length > 0;
 
   return (
     <ThemedView style={styles.flex}>
@@ -168,7 +188,7 @@ export default function AddProductScreen() {
             {saved && (
               <View style={[styles.successBanner, { backgroundColor: SemanticColors.successLight }]}>
                 <ThemedText style={[styles.successText, { color: SemanticColors.success }]}>
-                  {isEditMode ? '✅ Product updated successfully!' : '✅ Product added successfully!'}
+                  {isEditMode ? 'Product updated successfully!' : 'Product added successfully!'}
                 </ThemedText>
               </View>
             )}
@@ -177,7 +197,7 @@ export default function AddProductScreen() {
             {deleted && (
               <View style={[styles.successBanner, { backgroundColor: SemanticColors.dangerLight }]}>
                 <ThemedText style={[styles.successText, { color: SemanticColors.danger }]}>
-                  🗑️ Product deleted successfully!
+                  Product deleted.
                 </ThemedText>
               </View>
             )}
@@ -336,6 +356,46 @@ export default function AddProductScreen() {
               </ScrollView>
             </View>
 
+            {/* Store */}
+            <View
+              style={[
+                styles.card,
+                {
+                  backgroundColor: inputBg,
+                  shadowColor: isDark ? '#000' : '#E4E4E7',
+                },
+              ]}
+            >
+              <ThemedText style={[styles.sectionLabel, { color: theme.textSecondary }]}>
+                STORE / WAREHOUSE (MULTI-SELECT)
+              </ThemedText>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoryRow}
+              >
+                {STORES.map((store) => {
+                  const isSelected = form.storeIds && form.storeIds.includes(store.id);
+                  return (
+                    <CategoryChip
+                      key={store.id}
+                      label={store.name}
+                      isSelected={isSelected}
+                      color={SemanticColors.primary}
+                      onPress={() => {
+                        setForm((prev) => {
+                          const storeIds = prev.storeIds.includes(store.id)
+                            ? prev.storeIds.filter((id) => id !== store.id)
+                            : [...prev.storeIds, store.id];
+                          return { ...prev, storeIds };
+                        });
+                      }}
+                    />
+                  );
+                })}
+              </ScrollView>
+            </View>
+
             {/* Stock & Price */}
             <View
               style={[
@@ -436,7 +496,79 @@ export default function AddProductScreen() {
           </View>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={showConfirmModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowConfirmModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: inputBg, borderColor }]}>
+            <ThemedText style={[styles.modalTitle, { color: theme.text }]}>
+              Confirm Product Details
+            </ThemedText>
+
+            {form.image ? (
+              <Image source={{ uri: form.image }} style={styles.modalImage} />
+            ) : (
+              <View style={[styles.modalImagePlaceholder, { backgroundColor: theme.backgroundSelected }]}>
+                <SymbolView
+                  name={{ ios: 'photo', android: 'image', web: 'image' }}
+                  size={36}
+                  tintColor={theme.textSecondary}
+                />
+              </View>
+            )}
+
+            <View style={styles.modalInfoList}>
+              <ModalInfoRow label="Name" value={form.name.trim()} text={theme.text} labelColor={theme.textSecondary} />
+              <ModalInfoRow label="SKU" value={form.sku.trim()} text={theme.text} labelColor={theme.textSecondary} />
+              <ModalInfoRow label="Category" value={form.category.toUpperCase()} text={theme.text} labelColor={theme.textSecondary} />
+              <ModalInfoRow label="Stores" value={selectedStoreNames} text={theme.text} labelColor={theme.textSecondary} />
+              <ModalInfoRow label="Quantity" value={form.quantity} text={theme.text} labelColor={theme.textSecondary} />
+              <ModalInfoRow label="Price" value={`$${(parseFloat(form.price) || 0).toFixed(2)}`} text={theme.text} labelColor={theme.textSecondary} />
+              <ModalInfoRow label="Supplier" value={form.supplier.trim() || 'N/A'} text={theme.text} labelColor={theme.textSecondary} />
+            </View>
+
+            <View style={styles.modalActions}>
+              <Pressable
+                onPress={() => setShowConfirmModal(false)}
+                style={({ pressed }) => [
+                  styles.modalBtnCancel,
+                  { borderColor: isDark ? '#3F3F46' : '#D4D4D8' },
+                  pressed && { opacity: 0.7 }
+                ]}
+              >
+                <ThemedText style={{ color: theme.textSecondary, fontWeight: '600' }}>Cancel</ThemedText>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  setShowConfirmModal(false);
+                  executeSave();
+                }}
+                style={({ pressed }) => [
+                  styles.modalBtnConfirm,
+                  { backgroundColor: SemanticColors.primary },
+                  pressed && { opacity: 0.8 }
+                ]}
+              >
+                <ThemedText style={{ color: '#fff', fontWeight: '600' }}>Confirm & Save</ThemedText>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ThemedView>
+  );
+}
+
+function ModalInfoRow({ label, value, text, labelColor }: { label: string; value: string; text: string; labelColor: string }) {
+  return (
+    <View style={styles.modalInfoRow}>
+      <ThemedText style={[styles.modalInfoLabel, { color: labelColor }]}>{label}</ThemedText>
+      <ThemedText style={[styles.modalInfoValue, { color: text }]} numberOfLines={2}>{value}</ThemedText>
+    </View>
   );
 }
 
@@ -653,5 +785,86 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     marginTop: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 24,
+    alignItems: 'center',
+    gap: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 15,
+    elevation: 10,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  modalImage: {
+    width: 110,
+    height: 110,
+    borderRadius: 16,
+    resizeMode: 'cover',
+  },
+  modalImagePlaceholder: {
+    width: 110,
+    height: 110,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalInfoList: {
+    width: '100%',
+    gap: 8,
+    marginVertical: 8,
+  },
+  modalInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  modalInfoLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    flexShrink: 0,
+  },
+  modalInfoValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'right',
+    flex: 1,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+    marginTop: 8,
+  },
+  modalBtnCancel: {
+    flex: 1,
+    height: 48,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalBtnConfirm: {
+    flex: 1.5,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
