@@ -129,6 +129,7 @@ const styles = StyleSheet.create({
     fontSize: 30,
     fontWeight: '700',
     letterSpacing: 0.5,
+    lineHeight: 36,
   },
   logoutBtn: {
     alignItems: 'center',

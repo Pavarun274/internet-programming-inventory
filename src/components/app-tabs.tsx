@@ -1,8 +1,7 @@
-import { Tabs } from 'expo-router';
-import { View, StyleSheet, Platform } from 'react-native';
+import { Tabs, router } from 'expo-router';
+import { View, StyleSheet, Platform, Pressable } from 'react-native';
 import { SymbolView } from 'expo-symbols';
-import { ThemedText } from './themed-text';
-import { Colors, SemanticColors } from '@/constants/theme';
+import { SemanticColors } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -54,17 +53,22 @@ export default function AppTabs() {
         name="add"
         options={{
           title: 'Add',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={styles.addCircle}>
-              <SymbolView
-                name={{ ios: 'plus', android: 'add', web: 'add' }}
-                size={18}
-                tintColor="#fff"
-                weight="bold"
-              />
-            </View>
-          ),
           tabBarLabel: () => null,
+          tabBarButton: () => (
+            <Pressable
+              onPress={() => router.push('/add' as any)}
+              style={styles.addTabButton}
+            >
+              <View style={styles.addCircle}>
+                <SymbolView
+                  name={{ ios: 'plus', android: 'add', web: 'add' }}
+                  size={18}
+                  tintColor="#fff"
+                  weight="bold"
+                />
+              </View>
+            </Pressable>
+          ),
         }}
       />
       <Tabs.Screen
@@ -137,6 +141,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 6,
     elevation: 4,
+  },
+  addTabButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   addIcon: {
     fontSize: 16,

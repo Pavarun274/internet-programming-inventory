@@ -12,9 +12,10 @@ import { SemanticColors } from '@/constants/theme';
 type AppHeaderProps = {
   title?: string;
   style?: ViewStyle;
+  rightAction?: React.ReactNode;
 };
 
-export function AppHeader({ title = 'Inventory', style }: AppHeaderProps) {
+export function AppHeader({ title = 'Inventory', style, rightAction }: AppHeaderProps) {
   const { openMenu } = useMenu();
   const theme = useTheme();
   const scheme = useColorScheme();
@@ -55,16 +56,20 @@ export function AppHeader({ title = 'Inventory', style }: AppHeaderProps) {
       {/* Title */}
       <ThemedText style={[styles.title, { color: theme.text }]}>{title}</ThemedText>
 
-      {/* Avatar */}
-      <Pressable
-        onPress={() => router.push('/profile' as any)}
-        style={({ pressed }) => [
-          styles.avatarCircle,
-          { backgroundColor: SemanticColors.primary, opacity: pressed ? 0.8 : 1 },
-        ]}
-      >
-        <ThemedText style={styles.avatarText}>A</ThemedText>
-      </Pressable>
+      {/* Avatar or Custom Right Action */}
+      {rightAction ? (
+        rightAction
+      ) : (
+        <Pressable
+          onPress={() => router.push('/profile' as any)}
+          style={({ pressed }) => [
+            styles.avatarCircle,
+            { backgroundColor: SemanticColors.primary, opacity: pressed ? 0.8 : 1 },
+          ]}
+        >
+          <ThemedText style={styles.avatarText}>A</ThemedText>
+        </Pressable>
+      )}
     </View>
   );
 }
