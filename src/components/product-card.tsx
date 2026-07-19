@@ -5,7 +5,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { ThemedText } from './themed-text';
 import { StockBadge } from './stock-badge';
-import { Product, getStockStatus, CATEGORIES } from '@/constants/inventory-data';
+import { Product, getStockStatus, STORES } from '@/constants/inventory-data';
 
 type ProductCardProps = {
   product: Product;
@@ -26,6 +26,11 @@ export function ProductCard({ product, onPress }: ProductCardProps) {
   const isDark = scheme === 'dark';
   const cardBg = isDark ? SemanticColors.cardDark : SemanticColors.card;
   const status = getStockStatus(product);
+
+  const storeNames = STORES.filter((s) => product.storeIds && product.storeIds.includes(s.id))
+    .map((s) => s.name.split(' - ')[0])
+    .join(', ');
+  const displayStores = storeNames || 'No Store';
 
   const getCategoryStyles = (category: string) => {
     switch (category) {
@@ -93,6 +98,16 @@ export function ProductCard({ product, onPress }: ProductCardProps) {
         <ThemedText style={[styles.sku, { color: theme.textSecondary }]}>
           {product.sku}
         </ThemedText>
+        <View style={styles.storeRow}>
+          <SymbolView
+            name={{ ios: 'mappin.and.ellipse', android: 'place', web: 'place' }}
+            size={12}
+            tintColor={theme.textSecondary}
+          />
+          <ThemedText style={[styles.storeText, { color: theme.textSecondary }]} numberOfLines={1}>
+            {displayStores}
+          </ThemedText>
+        </View>
         <View style={styles.footer}>
           <ThemedText style={[styles.price, { color: SemanticColors.primary }]}>
             ${product.price.toFixed(2)}
@@ -183,5 +198,15 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
+  },
+  storeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
+  storeText: {
+    fontSize: 11,
+    fontWeight: '500',
   },
 });
