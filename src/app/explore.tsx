@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { FlatList, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
+import { SymbolView } from 'expo-symbols';
 import { CategoryChip } from '@/components/category-chip';
 import { ProductCard } from '@/components/product-card';
 import { SearchBar } from '@/components/search-bar';
@@ -38,6 +39,7 @@ export default function ProductsScreen() {
   } = useInventory();
 
   const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
   const paddingBottom = Platform.select({ ios: 90, android: 100, web: 24, default: 24 });
 
@@ -65,28 +67,84 @@ export default function ProductsScreen() {
               </View>
             </View>
 
-            {/* Search Row */}
-            <View style={styles.searchRow}>
-              <SearchBar
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholder="Search products, SKU..."
-                style={styles.searchBar}
-              />
-              <Pressable
-                onPress={() => setShowSortDropdown(!showSortDropdown)}
-                style={({ pressed }) => [
-                  styles.sortButton,
-                  {
-                    backgroundColor: theme.backgroundSelected,
-                    borderColor: isDark ? '#27272A' : '#E4E4E7',
-                    opacity: pressed ? 0.75 : 1,
-                  },
-                ]}
-              >
-                <ThemedText style={styles.sortButtonText}>⇅</ThemedText>
-              </Pressable>
-            </View>
+            {/* Search / Action Row */}
+            {isSearching ? (
+              <View style={styles.searchRowActive}>
+                <SearchBar
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholder="Search products..."
+                  style={styles.searchBarActive}
+                />
+                <Pressable
+                  onPress={() => {
+                    setIsSearching(false);
+                    setSearchQuery('');
+                  }}
+                  style={styles.closeSearchBtn}
+                >
+                  <SymbolView
+                    name={{ ios: 'xmark', android: 'close', web: 'close' }}
+                    size={18}
+                    tintColor={theme.textSecondary}
+                  />
+                </Pressable>
+              </View>
+            ) : (
+              <View style={styles.searchRow}>
+                {/* Search Toggle Button */}
+                <Pressable
+                  onPress={() => setIsSearching(true)}
+                  style={({ pressed }) => [
+                    styles.searchIconButton,
+                    { backgroundColor: theme.backgroundSelected, opacity: pressed ? 0.8 : 1 }
+                  ]}
+                >
+                  <SymbolView
+                    name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }}
+                    size={18}
+                    tintColor={SemanticColors.primary}
+                  />
+                </Pressable>
+
+                {/* Add Product Button */}
+                <Pressable
+                  onPress={() => router.push('/add' as any)}
+                  style={({ pressed }) => [
+                    styles.addProductBtnRow,
+                    { backgroundColor: SemanticColors.primary, opacity: pressed ? 0.8 : 1 }
+                  ]}
+                >
+                  <SymbolView
+                    name={{ ios: 'plus', android: 'add', web: 'add' }}
+                    size={14}
+                    tintColor="#fff"
+                    weight="bold"
+                  />
+                  <ThemedText style={styles.addProductBtnText}>Add Product</ThemedText>
+                </Pressable>
+
+                {/* Filter Button */}
+                <Pressable
+                  onPress={() => setShowSortDropdown(!showSortDropdown)}
+                  style={({ pressed }) => [
+                    styles.filterBtnRow,
+                    {
+                      backgroundColor: theme.backgroundElement,
+                      borderColor: isDark ? '#27272A' : '#E4E4E7',
+                      opacity: pressed ? 0.8 : 1,
+                    }
+                  ]}
+                >
+                  <ThemedText style={[styles.filterBtnText, { color: theme.textSecondary }]}>Filter</ThemedText>
+                  <SymbolView
+                    name={{ ios: 'line.3.horizontal.decrease.circle', android: 'filter_list', web: 'filter_list' }}
+                    size={14}
+                    tintColor={SemanticColors.primary}
+                  />
+                </Pressable>
+              </View>
+            )}
 
             {/* Sort Dropdown Selector */}
             {showSortDropdown && (
@@ -209,19 +267,61 @@ const styles = StyleSheet.create({
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
     width: '100%',
+    marginTop: 8,
   },
-  sortButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    borderWidth: 1,
+  searchRowActive: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    width: '100%',
+    marginTop: 8,
+  },
+  searchBarActive: {
+    flex: 1,
+  },
+  closeSearchBtn: {
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sortButtonText: {
-    fontSize: 20,
+  searchIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addProductBtnRow: {
+    flex: 1,
+    flexDirection: 'row',
+    height: 40,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+  },
+  addProductBtnText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  filterBtnRow: {
+    flexDirection: 'row',
+    height: 40,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+  },
+  filterBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   sortDropdown: {
     width: '100%',
@@ -267,5 +367,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'center',
+  },
+  headerAddBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 'auto',
+    zIndex: 10,
   },
 });
