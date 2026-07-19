@@ -9,42 +9,13 @@ import { MaxContentWidth, SemanticColors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useInventory } from '@/hooks/use-inventory';
+import { STORES } from '@/constants/inventory-data';
 
 const STORE_ICONS: Record<string, any> = {
   Warehouse: { ios: 'building.2', android: 'domain', web: 'domain' },
   Fulfillment: { ios: 'shippingbox', android: 'inventory', web: 'inventory' },
   default: { ios: 'storefront', android: 'storefront', web: 'storefront' },
 };
-
-const STORES_DATA = [
-  {
-    id: 's1',
-    name: 'Main Warehouse - Bangkok',
-    address: '123 Sukhumvit Rd, Khlong Toei, Bangkok 10110',
-    manager: 'Sarah Wilson',
-    phone: '+66 2 123 4567',
-    type: 'Warehouse',
-    status: 'Operational',
-  },
-  {
-    id: 's2',
-    name: 'Retail Outlet - Siam Paragon',
-    address: '991 Rama I Rd, Pathum Wan, Bangkok 10330',
-    manager: 'John Davis',
-    phone: '+66 2 987 6543',
-    type: 'Retail Store',
-    status: 'Operational',
-  },
-  {
-    id: 's3',
-    name: 'Fulfillment Center - Samut Prakan',
-    address: '456 Bangna-Trad Rd, Bang Phli, Samut Prakan 10540',
-    manager: 'Michael Chen',
-    phone: '+66 2 444 8888',
-    type: 'Fulfillment',
-    status: 'Restocking',
-  },
-];
 
 export default function StoresScreen() {
   const theme = useTheme();
@@ -56,12 +27,11 @@ export default function StoresScreen() {
   const { products } = useInventory();
   const paddingBottom = Platform.select({ ios: 90, android: 100, web: 24, default: 24 });
 
-  // Calculate mock stock distribution: main takes 60%, retail 25%, fulfillment 15%
+  // Calculate actual stock distribution by storeId
   const getProductCountForStore = (storeId: string) => {
-    const totalQty = products.reduce((sum, p) => sum + p.quantity, 0);
-    if (storeId === 's1') return Math.round(totalQty * 0.6);
-    if (storeId === 's2') return Math.round(totalQty * 0.25);
-    return Math.round(totalQty * 0.15);
+    return products
+      .filter((p) => p.storeIds && p.storeIds.includes(storeId))
+      .reduce((sum, p) => sum + p.quantity, 0);
   };
 
   return (
@@ -85,7 +55,7 @@ export default function StoresScreen() {
 
             {/* Store Grid */}
             <View style={styles.list}>
-              {STORES_DATA.map((store) => {
+              {STORES.map((store) => {
                 const stockCount = getProductCountForStore(store.id);
                 return (
                   <View
@@ -141,15 +111,36 @@ export default function StoresScreen() {
                     <View style={[styles.divider, { backgroundColor: theme.backgroundSelected }]} />
 
                     <View style={styles.storeDetails}>
-                      <ThemedText style={[styles.detailText, { color: theme.textSecondary }]}>
-                        📍 <ThemedText style={{ color: theme.text }}>{store.address}</ThemedText>
-                      </ThemedText>
-                      <ThemedText style={[styles.detailText, { color: theme.textSecondary }]}>
-                        👤 Manager: <ThemedText style={{ color: theme.text }}>{store.manager}</ThemedText>
-                      </ThemedText>
-                      <ThemedText style={[styles.detailText, { color: theme.textSecondary }]}>
-                        📞 Phone: <ThemedText style={{ color: theme.text }}>{store.phone}</ThemedText>
-                      </ThemedText>
+                      <View style={styles.detailRow}>
+                        <SymbolView
+                          name={{ ios: 'mappin.and.ellipse', android: 'place', web: 'place' }}
+                          size={14}
+                          tintColor={theme.textSecondary}
+                        />
+                        <ThemedText style={[styles.detailText, { color: theme.text, flex: 1 }]}>
+                          {store.address}
+                        </ThemedText>
+                      </View>
+                      <View style={styles.detailRow}>
+                        <SymbolView
+                          name={{ ios: 'person.fill', android: 'person', web: 'person' }}
+                          size={14}
+                          tintColor={theme.textSecondary}
+                        />
+                        <ThemedText style={[styles.detailText, { color: theme.textSecondary }]}>
+                          Manager: <ThemedText style={{ color: theme.text }}>{store.manager}</ThemedText>
+                        </ThemedText>
+                      </View>
+                      <View style={styles.detailRow}>
+                        <SymbolView
+                          name={{ ios: 'phone.fill', android: 'phone', web: 'phone' }}
+                          size={14}
+                          tintColor={theme.textSecondary}
+                        />
+                        <ThemedText style={[styles.detailText, { color: theme.textSecondary }]}>
+                          Phone: <ThemedText style={{ color: theme.text }}>{store.phone}</ThemedText>
+                        </ThemedText>
+                      </View>
                     </View>
 
                     <View style={[styles.divider, { backgroundColor: theme.backgroundSelected }]} />
@@ -246,12 +237,18 @@ const styles = StyleSheet.create({
     marginVertical: 12,
   },
   storeDetails: {
-    gap: 6,
+    gap: 8,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   detailText: {
     fontSize: 13,
     fontWeight: '500',
     lineHeight: 18,
+    flexShrink: 1,
   },
   storeFooter: {
     flexDirection: 'row',
