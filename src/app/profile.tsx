@@ -5,15 +5,10 @@ import { useState } from 'react';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, SemanticColors, Spacing } from '@/constants/theme';
-import { PRODUCTS, getStockStatus } from '@/constants/inventory-data';
+import { getStockStatus } from '@/constants/inventory-data';
 import { useTheme } from '@/hooks/use-theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-
-const TOTAL_PRODUCTS = PRODUCTS.length;
-const IN_STOCK = PRODUCTS.filter((p) => getStockStatus(p) === 'in_stock').length;
-const LOW_STOCK = PRODUCTS.filter((p) => getStockStatus(p) === 'low_stock').length;
-const OUT_OF_STOCK = PRODUCTS.filter((p) => getStockStatus(p) === 'out_of_stock').length;
-const TOTAL_VALUE = PRODUCTS.reduce((s, p) => s + p.price * p.quantity, 0);
+import { useInventory } from '@/hooks/use-inventory';
 
 export default function ProfileScreen() {
   const theme = useTheme();
@@ -23,6 +18,13 @@ export default function ProfileScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [lowStockAlerts, setLowStockAlerts] = useState(true);
   const [darkModeForced, setDarkModeForced] = useState(false);
+
+  const { products } = useInventory();
+  const TOTAL_PRODUCTS = products.length;
+  const IN_STOCK = products.filter((p) => getStockStatus(p) === 'in_stock').length;
+  const LOW_STOCK = products.filter((p) => getStockStatus(p) === 'low_stock').length;
+  const OUT_OF_STOCK = products.filter((p) => getStockStatus(p) === 'out_of_stock').length;
+  const TOTAL_VALUE = products.reduce((s, p) => s + p.price * p.quantity, 0);
 
   const cardBg = isDark ? SemanticColors.cardDark : SemanticColors.card;
   const shadowColor = isDark ? '#000' : '#E4E4E7';

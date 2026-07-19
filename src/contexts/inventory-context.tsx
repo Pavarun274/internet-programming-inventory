@@ -28,38 +28,57 @@ type InventoryContextType = {
 
 const STORAGE_KEY = 'inventory_products_v2';
 const ACTIVITIES_KEY = 'inventory_activities';
+const PRODUCTS_URL = 'https://raw.githubusercontent.com/Pavarun274/internet-programming-inventory/main/products.json';
 
 export const InventoryContext = createContext<InventoryContextType | undefined>(undefined);
 
 export function InventoryProvider({ children }: { children: ReactNode }) {
-  const [products, setProducts] = useState<Product[]>(PRODUCTS);
+  const [products, setProducts] = useState<Product[]>([]);
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>(RECENT_ACTIVITY);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortOption, setSortOption] = useState<SortOption>('default');
 
-  // Load from AsyncStorage on mount
+  // Load from GitHub Raw URL and AsyncStorage on mount
   useEffect(() => {
     async function loadStoredData() {
       try {
-        const storedProducts = await AsyncStorage.getItem(STORAGE_KEY);
-        if (storedProducts) {
-          const parsed = JSON.parse(storedProducts);
-          const migrated = parsed.map((p: any) => {
-            if (!p.storeIds) {
-              const { storeId, ...rest } = p;
-              return {
-                ...rest,
-                storeIds: storeId ? [storeId] : ['s1'],
-              };
-            }
-            return p;
-          });
-          setProducts(migrated);
+        const response = await fetch(PRODUCTS_URL);
+        if (response.ok) {
+          const data = await response.json();
+          setProducts(data);
+          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
         } else {
-          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(PRODUCTS));
+          throw new Error(`Failed to fetch from GitHub: ${response.status}`);
         }
+      } catch (e) {
+        console.warn('Could not fetch products from GitHub, trying storage fallback:', e);
+        try {
+          const storedProducts = await AsyncStorage.getItem(STORAGE_KEY);
+          if (storedProducts) {
+            const parsed = JSON.parse(storedProducts);
+            const migrated = parsed.map((p: any) => {
+              if (!p.storeIds) {
+                const { storeId, ...rest } = p;
+                return {
+                  ...rest,
+                  storeIds: storeId ? [storeId] : ['s1'],
+                };
+              }
+              return p;
+            });
+            setProducts(migrated);
+          } else {
+            setProducts(PRODUCTS);
+            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(PRODUCTS));
+          }
+        } catch (storageErr) {
+          console.error('Failed to load products from storage:', storageErr);
+          setProducts(PRODUCTS);
+        }
+      }
 
+      try {
         const storedActivities = await AsyncStorage.getItem(ACTIVITIES_KEY);
         if (storedActivities) {
           setRecentActivities(JSON.parse(storedActivities));
@@ -67,7 +86,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
           await AsyncStorage.setItem(ACTIVITIES_KEY, JSON.stringify(RECENT_ACTIVITY));
         }
       } catch (e) {
-        console.error('Failed to load inventory from storage:', e);
+        console.error('Failed to load activities from storage:', e);
       }
     }
     loadStoredData();
