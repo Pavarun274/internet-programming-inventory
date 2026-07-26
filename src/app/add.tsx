@@ -19,7 +19,7 @@ type FormField = {
   sku: string;
   category: string;
   storeIds: string[];
-  quantity: string;
+  storeQuantities: Record<string, string>;
   minQuantity: string;
   price: string;
   supplier: string;
@@ -32,7 +32,7 @@ const INITIAL_FORM: FormField = {
   sku: '',
   category: 'electronics',
   storeIds: ['s1'],
-  quantity: '',
+  storeQuantities: { s1: '0' },
   minQuantity: '',
   price: '',
   supplier: '',
@@ -57,6 +57,11 @@ export default function AddProductScreen() {
     .map((s) => s.name.split(' - ')[0])
     .join(', ');
 
+  const totalCalculatedQuantity = (form.storeIds || []).reduce((sum, sId) => {
+    const val = parseInt(form.storeQuantities?.[sId] || '0', 10);
+    return sum + (isNaN(val) ? 0 : val);
+  }, 0);
+
   const paddingBottom = Platform.select({ ios: 90, android: 100, web: 24, default: 24 });
 
   const inputBg = isDark ? SemanticColors.cardDark : SemanticColors.card;
@@ -64,25 +69,48 @@ export default function AddProductScreen() {
 
   // Load product data when editing, reset when adding new
   useEffect(() => {
+    let isMounted = true;
     if (isEditMode && id) {
       const product = getProductById(id);
       if (product) {
-        setForm({
-          name: product.name,
-          sku: product.sku,
-          category: product.category,
-          storeIds: product.storeIds || ['s1'],
-          quantity: product.quantity.toString(),
-          minQuantity: product.minQuantity.toString(),
-          price: product.price.toString(),
-          supplier: product.supplier || '',
-          description: product.description || '',
-          image: product.image || '',
-        });
+        const storeQtys: Record<string, string> = {};
+        if (product.storeQuantities) {
+          Object.entries(product.storeQuantities).forEach(([sId, q]) => {
+            storeQtys[sId] = q.toString();
+          });
+        } else {
+          (product.storeIds || ['s1']).forEach((sId, idx) => {
+            storeQtys[sId] = idx === 0 ? product.quantity.toString() : '0';
+          });
+        }
+
+        setTimeout(() => {
+          if (isMounted) {
+            setForm({
+              name: product.name,
+              sku: product.sku,
+              category: product.category,
+              storeIds: product.storeIds || ['s1'],
+              storeQuantities: storeQtys,
+              minQuantity: product.minQuantity.toString(),
+              price: product.price.toString(),
+              supplier: product.supplier || '',
+              description: product.description || '',
+              image: product.image || '',
+            });
+          }
+        }, 0);
       }
     } else {
-      setForm(INITIAL_FORM);
+      setTimeout(() => {
+        if (isMounted) {
+          setForm(INITIAL_FORM);
+        }
+      }, 0);
     }
+    return () => {
+      isMounted = false;
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -110,12 +138,21 @@ export default function AddProductScreen() {
   }
 
   function executeSave() {
+    const parsedStoreQuantities: Record<string, number> = {};
+    form.storeIds.forEach((sId) => {
+      const qtyNum = parseInt(form.storeQuantities[sId] || '0', 10);
+      parsedStoreQuantities[sId] = isNaN(qtyNum) ? 0 : Math.max(0, qtyNum);
+    });
+
+    const calculatedTotal = Object.values(parsedStoreQuantities).reduce((a, b) => a + b, 0);
+
     const parsedProduct = {
       name: form.name.trim(),
       sku: form.sku.trim(),
       category: form.category,
       storeIds: form.storeIds,
-      quantity: parseInt(form.quantity, 10) || 0,
+      storeQuantities: parsedStoreQuantities,
+      quantity: calculatedTotal,
       minQuantity: parseInt(form.minQuantity, 10) || 0,
       price: parseFloat(form.price) || 0,
       supplier: form.supplier.trim(),
@@ -154,7 +191,6 @@ export default function AddProductScreen() {
   const isFormValid =
     form.name.trim() &&
     form.sku.trim() &&
-    form.quantity &&
     form.price &&
     form.storeIds &&
     form.storeIds.length > 0;
@@ -356,7 +392,7 @@ export default function AddProductScreen() {
               </ScrollView>
             </View>
 
-            {/* Store */}
+            {/* Store & Stock Per Store */}
             <View
               style={[
                 styles.card,
@@ -367,7 +403,7 @@ export default function AddProductScreen() {
               ]}
             >
               <ThemedText style={[styles.sectionLabel, { color: theme.textSecondary }]}>
-                STORE / WAREHOUSE (MULTI-SELECT)
+                STORE & STOCK ALLOCATION
               </ThemedText>
               <ScrollView
                 horizontal
@@ -384,16 +420,108 @@ export default function AddProductScreen() {
                       color={SemanticColors.primary}
                       onPress={() => {
                         setForm((prev) => {
-                          const storeIds = prev.storeIds.includes(store.id)
+                          const isAlreadySelected = prev.storeIds.includes(store.id);
+                          const storeIds = isAlreadySelected
                             ? prev.storeIds.filter((id) => id !== store.id)
                             : [...prev.storeIds, store.id];
-                          return { ...prev, storeIds };
+                          const storeQuantities = { ...prev.storeQuantities };
+                          if (!isAlreadySelected && storeQuantities[store.id] === undefined) {
+                            storeQuantities[store.id] = '0';
+                          }
+                          return { ...prev, storeIds, storeQuantities };
                         });
                       }}
                     />
                   );
                 })}
               </ScrollView>
+
+              {/* Per-store quantity controls */}
+              <View style={styles.storeQuantitiesContainer}>
+                {STORES.filter((store) => form.storeIds.includes(store.id)).map((store) => {
+                  const qtyVal = form.storeQuantities[store.id] ?? '0';
+                  return (
+                    <View key={store.id} style={[styles.storeQtyRow, { borderColor }]}>
+                      <View style={styles.storeQtyInfo}>
+                        <ThemedText style={[styles.storeQtyName, { color: theme.text }]} numberOfLines={1}>
+                          {store.name}
+                        </ThemedText>
+                        <ThemedText style={[styles.storeQtyType, { color: theme.textSecondary }]}>
+                          {store.type}
+                        </ThemedText>
+                      </View>
+                      <View style={styles.qtyCounterWrapper}>
+                        <Pressable
+                          style={[styles.qtyBtn, { backgroundColor: isDark ? '#27272A' : '#E4E4E7' }]}
+                          onPress={() => {
+                            const current = parseInt(form.storeQuantities[store.id] || '0', 10);
+                            const next = Math.max(0, current - 1);
+                            setForm((prev) => ({
+                              ...prev,
+                              storeQuantities: {
+                                ...prev.storeQuantities,
+                                [store.id]: next.toString(),
+                              },
+                            }));
+                          }}
+                        >
+                          <ThemedText style={[styles.qtyBtnText, { color: theme.text }]}>-</ThemedText>
+                        </Pressable>
+
+                        <TextInput
+                          style={[
+                            styles.storeQtyInput,
+                            {
+                              backgroundColor: isDark ? '#252831' : '#F8F9FB',
+                              color: theme.text,
+                              borderColor,
+                            },
+                          ]}
+                          value={qtyVal}
+                          onChangeText={(v) => {
+                            const cleaned = v.replace(/[^0-9]/g, '');
+                            setForm((prev) => ({
+                              ...prev,
+                              storeQuantities: {
+                                ...prev.storeQuantities,
+                                [store.id]: cleaned,
+                              },
+                            }));
+                          }}
+                          keyboardType="numeric"
+                          selectTextOnFocus
+                        />
+
+                        <Pressable
+                          style={[styles.qtyBtn, { backgroundColor: SemanticColors.primary }]}
+                          onPress={() => {
+                            const current = parseInt(form.storeQuantities[store.id] || '0', 10);
+                            const next = current + 1;
+                            setForm((prev) => ({
+                              ...prev,
+                              storeQuantities: {
+                                ...prev.storeQuantities,
+                                [store.id]: next.toString(),
+                              },
+                            }));
+                          }}
+                        >
+                          <ThemedText style={[styles.qtyBtnText, { color: '#fff' }]}>+</ThemedText>
+                        </Pressable>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+
+              <View style={[styles.totalStockBanner, { backgroundColor: isDark ? '#1F2937' : '#EFF6FF' }]}>
+                <ThemedText style={[styles.totalStockLabel, { color: theme.textSecondary }]}>
+                  Total Allocated Stock:
+                </ThemedText>
+                <ThemedText style={[styles.totalStockValue, { color: SemanticColors.primary }]}>
+                  {totalCalculatedQuantity} units
+                </ThemedText>
+              </View>
             </View>
 
             {/* Stock & Price */}
@@ -407,21 +535,21 @@ export default function AddProductScreen() {
               ]}
             >
               <ThemedText style={[styles.sectionLabel, { color: theme.textSecondary }]}>
-                STOCK & PRICE
+                PRICE & INVENTORY RULES
               </ThemedText>
 
               <View style={styles.row}>
                 <View style={styles.half}>
                   <LabeledInput
-                    label="Quantity *"
-                    value={form.quantity}
-                    onChangeText={(v) => setForm({ ...form, quantity: v })}
+                    label="Total Quantity (Auto)"
+                    value={totalCalculatedQuantity.toString()}
+                    onChangeText={() => {}}
+                    editable={false}
                     placeholder="0"
-                    bg={isDark ? '#252831' : '#F8F9FB'}
+                    bg={isDark ? '#1F242D' : '#F1F5F9'}
                     borderColor={borderColor}
                     textColor={theme.text}
                     placeholderColor={theme.textSecondary}
-                    keyboardType="numeric"
                   />
                 </View>
                 <View style={styles.half}>
@@ -440,7 +568,7 @@ export default function AddProductScreen() {
               </View>
 
               <LabeledInput
-                label="Price (USD) *"
+                label="Price (THB) *"
                 value={form.price}
                 onChangeText={(v) => setForm({ ...form, price: v })}
                 placeholder="0.00"
@@ -449,7 +577,7 @@ export default function AddProductScreen() {
                 textColor={theme.text}
                 placeholderColor={theme.textSecondary}
                 keyboardType="decimal-pad"
-                prefix="$"
+                prefix="฿"
               />
             </View>
 
@@ -526,8 +654,8 @@ export default function AddProductScreen() {
               <ModalInfoRow label="SKU" value={form.sku.trim()} text={theme.text} labelColor={theme.textSecondary} />
               <ModalInfoRow label="Category" value={form.category.toUpperCase()} text={theme.text} labelColor={theme.textSecondary} />
               <ModalInfoRow label="Stores" value={selectedStoreNames} text={theme.text} labelColor={theme.textSecondary} />
-              <ModalInfoRow label="Quantity" value={form.quantity} text={theme.text} labelColor={theme.textSecondary} />
-              <ModalInfoRow label="Price" value={`$${(parseFloat(form.price) || 0).toFixed(2)}`} text={theme.text} labelColor={theme.textSecondary} />
+              <ModalInfoRow label="Quantity" value={`${totalCalculatedQuantity} units`} text={theme.text} labelColor={theme.textSecondary} />
+              <ModalInfoRow label="Price" value={`฿${(parseFloat(form.price) || 0).toFixed(2)}`} text={theme.text} labelColor={theme.textSecondary} />
               <ModalInfoRow label="Supplier" value={form.supplier.trim() || 'N/A'} text={theme.text} labelColor={theme.textSecondary} />
             </View>
 
@@ -866,5 +994,72 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  storeQuantitiesContainer: {
+    marginTop: 12,
+    gap: 10,
+  },
+  storeQtyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  storeQtyInfo: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  storeQtyName: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  storeQtyType: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  qtyCounterWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  qtyBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qtyBtnText: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  storeQtyInput: {
+    width: 54,
+    height: 36,
+    borderRadius: 8,
+    borderWidth: 1,
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  totalStockBanner: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 10,
+    marginTop: 12,
+  },
+  totalStockLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  totalStockValue: {
+    fontSize: 15,
+    fontWeight: '700',
   },
 });

@@ -16,6 +16,7 @@ export type Product = {
   sku: string;
   category: string;
   storeIds: string[];
+  storeQuantities?: Record<string, number>;
   quantity: number;
   minQuantity: number;
   price: number;

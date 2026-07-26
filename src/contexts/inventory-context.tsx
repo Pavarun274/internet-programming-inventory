@@ -32,6 +32,40 @@ const PRODUCTS_URL = 'https://raw.githubusercontent.com/Pavarun274/internet-prog
 
 export const InventoryContext = createContext<InventoryContextType | undefined>(undefined);
 
+function migrateProducts(parsed: any[]): Product[] {
+  return parsed.map((p) => {
+    const storeIds: string[] = p.storeIds || (p.storeId ? [p.storeId] : ['s1']);
+    let storeQuantities: Record<string, number> = p.storeQuantities ? { ...p.storeQuantities } : {};
+
+    if (!p.storeQuantities || Object.keys(storeQuantities).length === 0) {
+      storeQuantities = {};
+      storeIds.forEach((sId, idx) => {
+        storeQuantities[sId] = idx === 0 ? Number(p.quantity || 0) : 0;
+      });
+    }
+
+    const calculatedTotal = Object.values(storeQuantities).reduce((sum, val) => sum + (Number(val) || 0), 0);
+
+    return {
+      ...p,
+      storeIds,
+      storeQuantities,
+      quantity: calculatedTotal,
+    };
+  });
+}
+
+function mergeLocalImages(products: Product[]): Product[] {
+  const localImages = new Map(
+    PRODUCTS.filter((p) => p.image).map((p) => [p.id, p.image as string])
+  );
+
+  return products.map((p) => ({
+    ...p,
+    image: p.image || localImages.get(p.id),
+  }));
+}
+
 export function InventoryProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>(RECENT_ACTIVITY);
@@ -46,8 +80,9 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
         const response = await fetch(PRODUCTS_URL);
         if (response.ok) {
           const data = await response.json();
-          setProducts(data);
-          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+          const migrated = mergeLocalImages(migrateProducts(data));
+          setProducts(migrated);
+          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
         } else {
           throw new Error(`Failed to fetch from GitHub: ${response.status}`);
         }
@@ -57,24 +92,16 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
           const storedProducts = await AsyncStorage.getItem(STORAGE_KEY);
           if (storedProducts) {
             const parsed = JSON.parse(storedProducts);
-            const migrated = parsed.map((p: any) => {
-              if (!p.storeIds) {
-                const { storeId, ...rest } = p;
-                return {
-                  ...rest,
-                  storeIds: storeId ? [storeId] : ['s1'],
-                };
-              }
-              return p;
-            });
+            const migrated = mergeLocalImages(migrateProducts(parsed));
             setProducts(migrated);
           } else {
-            setProducts(PRODUCTS);
-            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(PRODUCTS));
+            const migrated = mergeLocalImages(migrateProducts(PRODUCTS));
+            setProducts(migrated);
+            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
           }
         } catch (storageErr) {
           console.error('Failed to load products from storage:', storageErr);
-          setProducts(PRODUCTS);
+          setProducts(mergeLocalImages(migrateProducts(PRODUCTS)));
         }
       }
 

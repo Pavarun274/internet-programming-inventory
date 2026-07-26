@@ -1,5 +1,4 @@
-import { Platform, ScrollView, StyleSheet, View, Pressable } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SymbolView } from 'expo-symbols';
 
 import { AppHeader } from '@/components/app-header';
@@ -31,7 +30,16 @@ export default function StoresScreen() {
   const getProductCountForStore = (storeId: string) => {
     return products
       .filter((p) => p.storeIds && p.storeIds.includes(storeId))
-      .reduce((sum, p) => sum + p.quantity, 0);
+      .reduce((sum, p) => {
+        if (p.storeQuantities && p.storeQuantities[storeId] !== undefined) {
+          return sum + p.storeQuantities[storeId];
+        }
+        return sum + p.quantity;
+      }, 0);
+  };
+
+  const getProductsForStore = (storeId: string) => {
+    return products.filter((p) => p.storeIds && p.storeIds.includes(storeId));
   };
 
   return (
@@ -141,6 +149,26 @@ export default function StoresScreen() {
                           Phone: <ThemedText style={{ color: theme.text }}>{store.phone}</ThemedText>
                         </ThemedText>
                       </View>
+                    </View>
+
+                    {/* Products in this store breakdown */}
+                    <View style={styles.storeProductsPreview}>
+                      <ThemedText style={[styles.previewHeading, { color: theme.textSecondary }]}>
+                        INVENTORY BREAKDOWN ({getProductsForStore(store.id).length} ITEMS)
+                      </ThemedText>
+                      {getProductsForStore(store.id).map((p) => {
+                        const qtyInStore = p.storeQuantities ? (p.storeQuantities[store.id] ?? 0) : p.quantity;
+                        return (
+                          <View key={p.id} style={styles.previewRow}>
+                            <ThemedText style={[styles.previewProductName, { color: theme.text }]} numberOfLines={1}>
+                              {p.name}
+                            </ThemedText>
+                            <ThemedText style={[styles.previewProductQty, { color: SemanticColors.primary }]}>
+                              {qtyInStore} units
+                            </ThemedText>
+                          </View>
+                        );
+                      })}
                     </View>
 
                     <View style={[styles.divider, { backgroundColor: theme.backgroundSelected }]} />
@@ -261,6 +289,31 @@ const styles = StyleSheet.create({
   },
   stockValue: {
     fontSize: 15,
+    fontWeight: '700',
+  },
+  storeProductsPreview: {
+    marginTop: 12,
+    gap: 6,
+  },
+  previewHeading: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  previewRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 2,
+  },
+  previewProductName: {
+    fontSize: 13,
+    fontWeight: '500',
+    flex: 1,
+  },
+  previewProductQty: {
+    fontSize: 13,
     fontWeight: '700',
   },
 });
