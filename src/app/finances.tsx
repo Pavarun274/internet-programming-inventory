@@ -67,7 +67,7 @@ export default function FinancesScreen() {
                   TOTAL ASSET VALUE (RETAIL)
                 </ThemedText>
                 <ThemedText style={[styles.kpiValue, { color: SemanticColors.primary }]}>
-                  ${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ฿{totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </ThemedText>
                 <ThemedText style={[styles.kpiDescription, { color: theme.textSecondary }]}>
                   Total selling value of all items in stock
@@ -79,7 +79,7 @@ export default function FinancesScreen() {
                   ESTIMATED ACQUISITION COST
                 </ThemedText>
                 <ThemedText style={[styles.kpiValue, { color: SemanticColors.warning }]}>
-                  ${estimatedCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ฿{estimatedCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </ThemedText>
                 <ThemedText style={[styles.kpiDescription, { color: theme.textSecondary }]}>
                   Calculated cost based on wholesale estimation
@@ -91,7 +91,7 @@ export default function FinancesScreen() {
                   POTENTIAL GROSS PROFIT
                 </ThemedText>
                 <ThemedText style={[styles.kpiValue, { color: SemanticColors.success }]}>
-                  ${potentialProfit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ฿{potentialProfit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </ThemedText>
                 <ThemedText style={[styles.kpiDescription, { color: theme.textSecondary }]}>
                   Revenue remaining after deducting product costs
@@ -113,7 +113,7 @@ export default function FinancesScreen() {
                         {cat.icon} {cat.name}
                       </ThemedText>
                       <ThemedText style={[styles.categoryValText, { color: theme.text }]}>
-                        ${cat.value.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                        ฿{cat.value.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                       </ThemedText>
                     </View>
                     <View style={styles.barWrapper}>

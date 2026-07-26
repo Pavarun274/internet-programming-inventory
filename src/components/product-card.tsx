@@ -28,7 +28,11 @@ export function ProductCard({ product, onPress }: ProductCardProps) {
   const status = getStockStatus(product);
 
   const storeNames = STORES.filter((s) => product.storeIds && product.storeIds.includes(s.id))
-    .map((s) => s.name.split(' - ')[0])
+    .map((s) => {
+      const shortName = s.name.split(' - ')[0];
+      const qty = product.storeQuantities ? product.storeQuantities[s.id] : undefined;
+      return qty !== undefined ? `${shortName} (${qty})` : shortName;
+    })
     .join(', ');
   const displayStores = storeNames || 'No Store';
 
@@ -110,7 +114,7 @@ export function ProductCard({ product, onPress }: ProductCardProps) {
         </View>
         <View style={styles.footer}>
           <ThemedText style={[styles.price, { color: SemanticColors.primary }]}>
-            ${product.price.toFixed(2)}
+            ฿{product.price.toFixed(2)}
           </ThemedText>
           <StockBadge status={status} quantity={product.quantity} />
         </View>

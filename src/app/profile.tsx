@@ -85,7 +85,7 @@ export default function ProfileScreen() {
                   Total Inventory Value
                 </ThemedText>
                 <ThemedText style={[styles.valueAmount, { color: SemanticColors.primary }]}>
-                  ${TOTAL_VALUE.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ฿{TOTAL_VALUE.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </ThemedText>
               </View>
             </View>
