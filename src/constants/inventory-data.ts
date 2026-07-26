@@ -83,7 +83,7 @@ export const CATEGORIES: Category[] = [
   { id: 'tools', name: 'Tools', color: '#10B981', icon: 'wrench.and.screwdriver', count: 5 },
 ];
 
-export const PRODUCTS: Product[] = productsData as Product[];
+export const PRODUCTS: Product[] = productsData as unknown as Product[];
 
 export const RECENT_ACTIVITY: RecentActivity[] = [
   {

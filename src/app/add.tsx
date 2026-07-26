@@ -713,6 +713,7 @@ type LabeledInputProps = {
   numberOfLines?: number;
   keyboardType?: 'default' | 'numeric' | 'decimal-pad';
   prefix?: string;
+  editable?: boolean;
 };
 
 function LabeledInput({
@@ -728,6 +729,7 @@ function LabeledInput({
   numberOfLines,
   keyboardType = 'default',
   prefix,
+  editable = true,
 }: LabeledInputProps) {
   return (
     <View style={inputStyles.container}>
@@ -749,6 +751,7 @@ function LabeledInput({
           keyboardType={keyboardType}
           multiline={multiline}
           numberOfLines={numberOfLines}
+          editable={editable}
         />
       </View>
     </View>
