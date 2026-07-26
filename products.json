@@ -1,197 +1,301 @@
 [
   {
     "id": "1",
-    "name": "MacBook Pro 14\"",
-    "sku": "MBP-14-M3",
+    "name": "Apple AirPods Pro (2nd Generation) with MagSafe Charging Case (USB-C)",
+    "sku": "APP-AIR-P2",
     "category": "electronics",
-    "storeIds": ["s1"],
-    "quantity": 12,
+    "storeIds": [
+      "s1"
+    ],
+    "storeQuantities": {
+      "s1": 15
+    },
+    "quantity": 15,
     "minQuantity": 5,
-    "price": 1999.99,
-    "supplier": "Apple Inc.",
-    "lastUpdated": "2026-07-08",
-    "description": "Apple MacBook Pro 14-inch with M3 chip, 16GB RAM, 512GB SSD."
+    "price": 249.00,
+    "supplier": "Apple",
+    "lastUpdated": "2026-07-26",
+    "description": "Experience next-level audio performance powered by the H2 chip. Features up to 2x more Active Noise Cancellation (ANC), Adaptive Audio, and Personalized Spatial Audio with dynamic head tracking for immersive, theater-like sound. The updated MagSafe Charging Case features a USB-C port, a built-in speaker for Find My, and IP54 dust and water resistance.",
+    "image": "https://www.apple.com/newsroom/images/2023/09/apple-introduces-new-airpods-pro-2nd-generation/article/Apple-AirPods-Pro-2nd-generation-USB-C-connection-230912_inline.jpg.large_2x.jpg"
   },
   {
     "id": "2",
-    "name": "iPhone 16 Pro",
-    "sku": "IPH-16P-BLK",
+    "name": "Logitech MX Master 3S Wireless Performance Mouse",
+    "sku": "LOG-MXM-3S",
     "category": "electronics",
-    "storeIds": ["s1"],
-    "quantity": 3,
-    "minQuantity": 10,
-    "price": 1099.99,
-    "supplier": "Apple Inc.",
-    "lastUpdated": "2026-07-07",
-    "description": "iPhone 16 Pro with titanium finish, 256GB storage."
+    "storeIds": [
+      "s1",
+      "s2"
+    ],
+    "storeQuantities": {
+      "s1": 12,
+      "s2": 10
+    },
+    "quantity": 22,
+    "minQuantity": 8,
+    "price": 99.99,
+    "supplier": "Logitech",
+    "lastUpdated": "2026-07-26",
+    "description": "An iconic ergonomic mouse designed for ultimate productivity. Features Quiet Clicks that reduce click noise by 90% and an 8,000 DPI track-on-glass sensor for extreme precision on any surface. The MagSpeed Electromagnetic scroll wheel provides lightning-fast speed and pixel-precise control. Connect up to 3 devices simultaneously via Bluetooth or Logi Bolt.",
+    "image": "https://www.wonderprice.co.uk/image/cache/wp/gp/products_2023/Logitech-MX-Master3S-wireless-performance-mouse-graphite-1-1600x1600w.webp"
   },
   {
     "id": "3",
-    "name": "Sony WH-1000XM5",
+    "name": "Sony WH-1000XM5 Wireless Noise-Canceling Headphones",
     "sku": "SNY-WH5-BLK",
     "category": "electronics",
-    "storeIds": ["s2"],
-    "quantity": 0,
-    "minQuantity": 5,
-    "price": 349.99,
-    "supplier": "Sony Corp.",
-    "lastUpdated": "2026-07-06",
-    "description": "Premium noise-cancelling wireless headphones."
+    "storeIds": [
+      "s2"
+    ],
+    "storeQuantities": {
+      "s2": 8
+    },
+    "quantity": 8,
+    "minQuantity": 3,
+    "price": 399.99,
+    "supplier": "Sony",
+    "lastUpdated": "2026-07-26",
+    "description": "Industry-leading noise cancellation powered by two processors and eight microphones. Enjoy exceptional Hi-Res audio quality and crystal-clear hands-free calling with Precise Voice Pickup technology. Boasts up to 30 hours of battery life with quick charging capability (3 minutes of charge gives 3 hours of playback) and an ultra-comfortable lightweight design.",
+    "image": "https://d1ncau8tqf99kp.cloudfront.net/converted/111295_original_local_1200x1050_v3_converted.webp"
   },
   {
     "id": "4",
-    "name": "Running Shoes Nike",
-    "sku": "NK-RUN-SZ10",
-    "category": "clothing",
-    "storeIds": ["s2"],
-    "quantity": 25,
-    "minQuantity": 8,
-    "price": 129.99,
-    "supplier": "Nike LLC",
-    "lastUpdated": "2026-07-08",
-    "description": "Nike Air Zoom Pegasus 40 running shoes, size 10."
+    "name": "Muji Minimalist Ultrasonic Aroma Diffuser",
+    "sku": "MUJ-ARM-DIF",
+    "category": "electronics",
+    "storeIds": [
+      "s2",
+      "s3"
+    ],
+    "storeQuantities": {
+      "s2": 6,
+      "s3": 8
+    },
+    "quantity": 14,
+    "minQuantity": 5,
+    "price": 69.90,
+    "supplier": "MUJI",
+    "lastUpdated": "2026-07-26",
+    "description": "Designed with a clean, minimalist aesthetic, this diffuser uses ultrasonic waves to vaporize water and essential oils without heat, preserving the oil's natural aroma. Features two adjustable LED brightness settings, doubling as a warm ambient nightlight perfect for bedrooms or workspaces.",
+    "image": "https://www.muji.us/cdn/shop/products/5055198210293_03_1260_700x.jpg?v=1668802864"
   },
   {
     "id": "5",
-    "name": "Polo Shirt - Blue",
-    "sku": "PLO-BLU-M",
+    "name": "Uniqlo AIRism Cotton Oversized T-Shirt (Short Sleeve)",
+    "sku": "UNQ-AIR-TSH",
     "category": "clothing",
-    "storeIds": ["s2"],
-    "quantity": 4,
-    "minQuantity": 10,
-    "price": 49.99,
-    "supplier": "Gap Inc.",
-    "lastUpdated": "2026-07-05",
-    "description": "Classic polo shirt in royal blue, size medium."
+    "storeIds": [
+      "s1",
+      "s2"
+    ],
+    "storeQuantities": {
+      "s1": 25,
+      "s2": 20
+    },
+    "quantity": 45,
+    "minQuantity": 15,
+    "price": 19.90,
+    "supplier": "Uniqlo",
+    "lastUpdated": "2026-07-26",
+    "description": "The ultimate everyday tee combining a stylish streetwear silhouette with high-tech comfort. Crafted with a premium cotton exterior and Uniqlo’s proprietary AIRism smooth, moisture-wicking technology on the inside. Breathable, quick-drying, and cool to the touch—ideal for warm weather and versatile layering.",
+    "image": "https://image.uniqlo.com/UQ/ST3/WesternCommon/imagesgoods/465185/sub/goods_465185_sub14_3x4.jpg?width=400"
   },
   {
     "id": "6",
-    "name": "Denim Jeans Slim",
-    "sku": "DNM-SLM-32",
+    "name": "Muji Linen Washable Short Sleeve Shirt",
+    "sku": "MUJ-LIN-SHT",
     "category": "clothing",
-    "storeIds": ["s2"],
+    "storeIds": [
+      "s2"
+    ],
+    "storeQuantities": {
+      "s2": 18
+    },
     "quantity": 18,
-    "minQuantity": 6,
-    "price": 79.99,
-    "supplier": "Levi Strauss",
-    "lastUpdated": "2026-07-07",
-    "description": "Slim fit denim jeans, waist 32 inseam 30."
+    "minQuantity": 5,
+    "price": 39.90,
+    "supplier": "MUJI",
+    "lastUpdated": "2026-07-26",
+    "description": "Made from 100% high-quality French flax linen, this short-sleeve button-down offers a light, breathable feel that gets softer with every wash. Perfect for casual smart-casual outfits, summer outings, or relaxed daily wear with an effortless, natural drape.",
+    "image": "https://cdn11.bigcommerce.com/s-36unquhwg5/images/stencil/1280w/products/8171/2703598/P-AC1W1-F-000000-000001_06__83892.1766137841.jpg?c=1"
   },
   {
     "id": "7",
-    "name": "Organic Coffee Beans",
-    "sku": "COF-ORG-1KG",
-    "category": "food",
-    "storeIds": ["s3"],
-    "quantity": 2,
-    "minQuantity": 15,
-    "price": 24.99,
-    "supplier": "Roast Co.",
-    "lastUpdated": "2026-07-08",
-    "description": "Fair-trade organic Arabica coffee beans, 1kg bag."
+    "name": "Nike Dri-FIT Form Men's Versatile Shorts",
+    "sku": "NKE-DFT-SRT",
+    "category": "clothing",
+    "storeIds": [
+      "s1",
+      "s3"
+    ],
+    "storeQuantities": {
+      "s1": 10,
+      "s3": 12
+    },
+    "quantity": 22,
+    "minQuantity": 8,
+    "price": 45.00,
+    "supplier": "Nike",
+    "lastUpdated": "2026-07-26",
+    "description": "Engineered for versatility and mobility during workouts or casual days. Built with sweat-wicking Dri-FIT technology to keep you dry and comfortable. Features a lightweight, smooth fabric, an elastic waistband with an internal drawcord, and convenient side pockets for basic storage.",
+    "image": "https://www.supersports.co.th/cdn/shop/files/NI083AP141DATH-2.jpg?v=1776331411&width=1100"
   },
   {
     "id": "8",
-    "name": "Green Tea Matcha",
-    "sku": "TEA-MAT-250G",
-    "category": "food",
-    "storeIds": ["s3"],
-    "quantity": 30,
-    "minQuantity": 10,
-    "price": 19.99,
-    "supplier": "Ippodo Tea",
-    "lastUpdated": "2026-07-06",
-    "description": "Ceremonial grade matcha green tea powder, 250g."
+    "name": "Levi's 501 Original Fit Jeans",
+    "sku": "LVS-501-JNS",
+    "category": "clothing",
+    "storeIds": [
+      "s2"
+    ],
+    "storeQuantities": {
+      "s2": 16
+    },
+    "quantity": 16,
+    "minQuantity": 6,
+    "price": 79.50,
+    "supplier": "Levi's",
+    "lastUpdated": "2026-07-26",
+    "description": "The timeless classic that started it all. Cut in an iconic straight-leg fit with a signature button fly, these jeans are crafted from 100% durable cotton denim. Designed to mold to your body over time, providing a personalized fit and an enduring style that never goes out of fashion.",
+    "image": "https://levi.co.th/cdn/shop/files/levis-mens-501-original-jeans-005013921-5-GLO-CM-D1_cf0bd467-b19e-447e-bf32-39ada18d8375_1456x1600_crop_center.progressive.jpg?v=1782094958"
   },
   {
     "id": "9",
-    "name": "Power Drill Set",
-    "sku": "DRL-SET-20V",
-    "category": "tools",
-    "storeIds": ["s1"],
-    "quantity": 7,
-    "minQuantity": 3,
-    "price": 189.99,
-    "supplier": "DeWalt",
-    "lastUpdated": "2026-07-07",
-    "description": "20V cordless drill with 2 batteries and 50-piece bit set."
+    "name": "Starbucks House Blend Coffee Capsules by Nespresso / Dolce Gusto (12 Pods)",
+    "sku": "SBUX-HS-CAP",
+    "category": "food",
+    "storeIds": [
+      "s3"
+    ],
+    "storeQuantities": {
+      "s3": 35
+    },
+    "quantity": 35,
+    "minQuantity": 10,
+    "price": 9.99,
+    "supplier": "Starbucks / Nestlé",
+    "lastUpdated": "2026-07-26",
+    "description": "Enjoy the signature flavor of Starbucks at home. A medium roast blend of fine Latin American beans roasted to a glistening, dark chestnut color. Loaded with flavor, balancing aromas of cocoa and toasted nuts with a touch of sweetness from the roast.",
+    "image": "https://www.starbucksathome.com/th/sites/default/files/styles/pdp_gallery_xlarge/public/2021-05/SBUX_Website_NDG_Longshadow_HouseBlend.png.webp?h=07cea122&itok=Vtc7nPzG"
   },
   {
     "id": "10",
-    "name": "Wrench Set 14pc",
-    "sku": "WRN-SET-14",
-    "category": "tools",
-    "storeIds": ["s1"],
-    "quantity": 0,
-    "minQuantity": 5,
-    "price": 64.99,
-    "supplier": "Craftsman",
-    "lastUpdated": "2026-07-04",
-    "description": "Combination wrench set, 14 pieces, SAE and metric."
+    "name": "Twinings of London Earl Grey Black Tea (25 Tea Bags)",
+    "sku": "TWN-EGL-TEA",
+    "category": "food",
+    "storeIds": [
+      "s3"
+    ],
+    "storeQuantities": {
+      "s3": 40
+    },
+    "quantity": 40,
+    "minQuantity": 12,
+    "price": 6.49,
+    "supplier": "Twinings",
+    "lastUpdated": "2026-07-26",
+    "description": "A legendary black tea blend scented with the fragrant oil of bergamot citrus fruit. Delivers a distinctive, refreshing citrus aroma and a smooth, balanced taste. Perfect enjoyed hot or iced, on its own or with a slice of lemon for an afternoon tea break.",
+    "image": "https://product.hstatic.net/1000282430/product/twinings-earl-grey_614ea67bf4b749e9ac370ac1364290db_master.jpg"
   },
   {
     "id": "11",
-    "name": "iPad Air 11\"",
-    "sku": "IPD-AIR-11",
-    "category": "electronics",
-    "storeIds": ["s2"],
-    "quantity": 9,
-    "minQuantity": 4,
-    "price": 699.99,
-    "supplier": "Apple Inc.",
-    "lastUpdated": "2026-07-08",
-    "description": "iPad Air 11-inch with M2 chip, 128GB, Wi-Fi."
+    "name": "Muji Matcha Baumkuchen Layer Cake",
+    "sku": "MUJ-MTC-BMK",
+    "category": "food",
+    "storeIds": [
+      "s2",
+      "s3"
+    ],
+    "storeQuantities": {
+      "s2": 15,
+      "s3": 15
+    },
+    "quantity": 30,
+    "minQuantity": 10,
+    "price": 2.90,
+    "supplier": "MUJI",
+    "lastUpdated": "2026-07-26",
+    "description": "A traditional Japanese layered ring cake baked to perfection. Infused with authentic Uji matcha green tea powder, offering a rich, earthy flavor profile with a delicately sweet balance. Moist, soft, and individually portioned—ideal for pairing with hot tea or coffee.",
+    "image": "https://img.muji.net/img/item/4550512798804_1260.jpg"
   },
   {
     "id": "12",
-    "name": "Wireless Mouse",
-    "sku": "MOU-WLS-BLK",
-    "category": "electronics",
-    "storeIds": ["s2"],
-    "quantity": 22,
-    "minQuantity": 10,
-    "price": 59.99,
-    "supplier": "Logitech",
-    "lastUpdated": "2026-07-06",
-    "description": "MX Master 3S wireless mouse, black."
+    "name": "Bosch IXO 7 Cordless Screwdriver (3.6V)",
+    "sku": "BSH-IXO-7V",
+    "category": "tools",
+    "storeIds": [
+      "s1"
+    ],
+    "storeQuantities": {
+      "s1": 9
+    },
+    "quantity": 9,
+    "minQuantity": 4,
+    "price": 49.99,
+    "supplier": "Bosch",
+    "lastUpdated": "2026-07-26",
+    "description": "A compact, user-friendly cordless screwdriver built for everyday household tasks and flat-pack furniture assembly. Delivers 20% increased torque over its predecessor and features a 360-degree LED light ring to eliminate shadows in tight dark spaces. Easily rechargeable via Micro-USB/USB-C.",
+    "image": "https://vertexpowertools.com/cdn/shop/files/06039E0000_IXO7_FCP_2000x2000px_720x@2x.png?v=1753518744"
   },
   {
     "id": "13",
-    "name": "Protein Bar Box",
-    "sku": "PRO-BAR-24",
-    "category": "food",
-    "storeIds": ["s3"],
-    "quantity": 45,
-    "minQuantity": 12,
-    "price": 39.99,
-    "supplier": "Quest Nutrition",
-    "lastUpdated": "2026-07-08",
-    "description": "Chocolate chip cookie dough protein bars, box of 24."
+    "name": "Stanley FatMax Tape Measure (5m / 16ft)",
+    "sku": "STN-FTM-5M",
+    "category": "tools",
+    "storeIds": [
+      "s1",
+      "s3"
+    ],
+    "storeQuantities": {
+      "s1": 10,
+      "s3": 10
+    },
+    "quantity": 20,
+    "minQuantity": 5,
+    "price": 19.99,
+    "supplier": "Stanley",
+    "lastUpdated": "2026-07-26",
+    "description": "Built for professional durability, featuring a high-impact ABS case and BladeArmor coating on the first 3 inches to prevent breakage. The tape blade is coated with Mylar to withstand wear up to 10 times longer than standard blades. Equipped with clear markings and a strong magnetic hook.",
+    "image": "https://www.stanleytools.co.uk/EMEA/PRODUCT/IMAGES/HIRES/5-33-886_2.jpg?resize=530x530"
   },
   {
     "id": "14",
-    "name": "Tape Measure 25ft",
-    "sku": "TAP-25FT",
+    "name": "Makita 12V Max CXT Cordless Driver Drill Kit",
+    "sku": "MKT-12V-DRL",
     "category": "tools",
-    "storeIds": ["s3"],
-    "quantity": 14,
-    "minQuantity": 5,
-    "price": 24.99,
-    "supplier": "Stanley",
-    "lastUpdated": "2026-07-05",
-    "description": "Classic 25ft retractable tape measure with magnetic hook."
+    "storeIds": [
+      "s1"
+    ],
+    "storeQuantities": {
+      "s1": 5
+    },
+    "quantity": 5,
+    "minQuantity": 2,
+    "price": 129.00,
+    "supplier": "Makita",
+    "lastUpdated": "2026-07-26",
+    "description": "A compact yet powerful 12V driver-drill kit delivering up to 250 in.lbs. of Max Torque. Features a variable 2-speed transmission (0-450 & 0-1,700 RPM) covering a wide range of drilling and driving applications. Includes two 12V Max CXT Lithium-Ion batteries, a charger, and a durable carrying case.",
+    "image": "https://fi.makitamedia.com/images/3_Makita/301_machines/3011_a_GS1/30120_JPG_zoom/DF333D_C2L0.jpg"
   },
   {
     "id": "15",
-    "name": "Winter Jacket",
-    "sku": "JKT-WIN-XL",
-    "category": "clothing",
-    "storeIds": ["s1"],
-    "quantity": 6,
+    "name": "Muji Aluminum Precision Screwdriver Set",
+    "sku": "MUJ-ALU-SCD",
+    "category": "tools",
+    "storeIds": [
+      "s1",
+      "s2"
+    ],
+    "storeQuantities": {
+      "s1": 8,
+      "s2": 7
+    },
+    "quantity": 15,
     "minQuantity": 5,
-    "price": 199.99,
-    "supplier": "The North Face",
-    "lastUpdated": "2026-07-03",
-    "description": "Insulated winter jacket, size XL, midnight navy."
+    "price": 19.90,
+    "supplier": "MUJI",
+    "lastUpdated": "2026-07-26",
+    "description": "A sleek, minimal precision tool kit enclosed in a lightweight aluminum case with a push-to-release mechanism. Includes high-accuracy magnetic steel bits designed for repairing small electronics, eyeglasses, watches, laptops, and smartphones.",
+    "image": "https://www.muji.us/cdn/shop/products/4945247676891_org_700x.jpg?v=1762446091"
   }
 ]
