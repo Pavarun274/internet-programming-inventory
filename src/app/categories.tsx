@@ -121,9 +121,9 @@ export default function CategoriesScreen() {
               return (
                 <View key={cat.id} style={styles.section}>
                   <View style={styles.sectionHeader}>
-                    <View style={[styles.sectionDot, { backgroundColor: meta.color }]} />
+                    <SymbolView name={meta.icon} size={18} tintColor={meta.color} />
                     <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
-                      {meta.icon} {cat.name}
+                      {cat.name}
                     </ThemedText>
                     <ThemedText style={[styles.sectionCount, { color: meta.color }]}>
                       {items.length}

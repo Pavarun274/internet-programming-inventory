@@ -110,7 +110,7 @@ export default function FinancesScreen() {
                   <View key={cat.id} style={styles.breakdownRow}>
                     <View style={styles.categoryInfo}>
                       <ThemedText style={styles.categoryName}>
-                        {cat.icon} {cat.name}
+                        {cat.name}
                       </ThemedText>
                       <ThemedText style={[styles.categoryValText, { color: theme.text }]}>
                         ฿{cat.value.toLocaleString('en-US', { maximumFractionDigits: 0 })}
