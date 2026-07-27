@@ -1,6 +1,7 @@
 import React, { createContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PRODUCTS, RECENT_ACTIVITY, Product, RecentActivity, getStockStatus } from '@/constants/inventory-data';
+import { apiCall, fetchProductsFromApi } from '@/services/api';
 
 export type SortOption = 'default' | 'price-asc' | 'price-desc' | 'qty-asc' | 'name-asc';
 
@@ -73,10 +74,24 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortOption, setSortOption] = useState<SortOption>('default');
 
-  // Load from GitHub Raw URL and AsyncStorage on mount
+  // Load from Backend API / GitHub / AsyncStorage on mount
   useEffect(() => {
     async function loadStoredData() {
       try {
+        // 1. Try fetching from Backend API Server using fetchProductsFromApi
+        const data = await fetchProductsFromApi();
+        if (Array.isArray(data) && data.length > 0) {
+          const migrated = mergeLocalImages(migrateProducts(data));
+          setProducts(migrated);
+          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+          return;
+        }
+      } catch (backendErr) {
+        console.warn('Could not fetch from Backend API, falling back to GitHub/Storage:', backendErr);
+      }
+
+      try {
+        // 2. Fallback to GitHub Raw URL
         const response = await fetch(PRODUCTS_URL);
         if (response.ok) {
           const data = await response.json();
@@ -191,7 +206,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
           logActivity({
             type: 'updated',
             productName: updates.name ?? original.name,
-            quantity: original.quantity,
+            quantity: 0,
           });
         }
       }

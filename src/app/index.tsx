@@ -209,10 +209,19 @@ export default function DashboardScreen() {
                         <ThemedText
                           style={[
                             styles.txQty,
-                            { color: act.type === 'removed' ? SemanticColors.danger : SemanticColors.primary },
+                            {
+                              color:
+                                act.type === 'removed'
+                                  ? SemanticColors.danger
+                                  : act.type === 'updated'
+                                  ? theme.textSecondary
+                                  : SemanticColors.primary,
+                            },
                           ]}
                         >
-                          {act.type === 'removed' ? '-' : '+'}{act.quantity}
+                          {act.type === 'updated'
+                            ? (act.quantity && act.quantity > 0 ? `${act.quantity} qty` : 'Edit')
+                            : `${act.type === 'removed' ? '-' : '+'}${act.quantity}`}
                         </ThemedText>
                         <ThemedText style={[styles.txTime, { color: theme.textSecondary }]}>
                           {formatTime(act.timestamp)}

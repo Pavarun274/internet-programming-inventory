@@ -114,7 +114,7 @@ export const RECENT_ACTIVITY: RecentActivity[] = [
     id: 'a4',
     type: 'updated',
     productName: 'Polo Shirt - Blue',
-    quantity: 4,
+    quantity: 0,
     timestamp: '2026-07-07T16:45:00',
     user: 'Sarah M.',
   },
