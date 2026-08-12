@@ -1,6 +1,6 @@
-// Primary API URL (Port 3044) and Web Path Fallback URL
-export const API_BASE_URL = 'http://119.59.102.161:3044/api';
-export const FALLBACK_API_BASE_URL = 'http://119.59.102.161/web/dcas/ip/std6730202700/api';
+// Primary API URL — university cloud server (assigned port 3064)
+export const API_BASE_URL = 'http://119.59.102.161:3064/api';
+export const FALLBACK_API_BASE_URL = 'http://119.59.102.161:3064/api';
 
 /**
  * Enhanced API Call Function with automatic fallback handling
@@ -39,7 +39,7 @@ export const apiCall = async <T = any>(endpoint: string, options: RequestInit = 
     }
     throw new Error(`HTTP Error: ${response.status}`);
   } catch (fallbackErr) {
-    console.error(`[API Error] Could not connect to backend server:`, fallbackErr);
+    console.warn(`[API Warning] Could not connect to backend server:`, fallbackErr);
     throw fallbackErr;
   }
 };
@@ -60,8 +60,81 @@ export const fetchProductsFromApi = async (authToken?: string) => {
 
   return data.map((product: any) => ({
     ...product,
+    // The products table's primary key is `product_id`, not `id` — the
+    // frontend Product model keys everything off `id`, so it must be mapped
+    // here or every product loaded from the backend would have no usable id.
+    id: String(product.id ?? product.product_id),
+    // mysql2 returns DECIMAL columns (price) as strings, not numbers — leaving
+    // it as a string crashes any `.toFixed()` call downstream.
+    price: Number(product.price) || 0,
+    quantity: Number(product.quantity) || 0,
+    // These columns don't exist on the real products table at all, so they'd
+    // otherwise come back `undefined` even though Product requires them.
+    minQuantity: Number(product.minQuantity) || 0,
+    supplier: product.supplier ?? '',
+    description: product.description ?? '',
+    storeIds: product.storeIds ?? ['s1'],
+    category: product.category ?? '',
     storeAvailability: typeof product.storeAvailability === 'string'
       ? JSON.parse(product.storeAvailability || '[]')
       : product.storeAvailability || [],
   }));
+};
+
+/**
+ * Retrieves categories from the API via apiCall('/categories')
+ */
+export const fetchCategoriesFromApi = async (): Promise<any[]> => {
+  const data = await apiCall('/categories');
+  if (!Array.isArray(data)) {
+    throw new Error('Invalid data format received');
+  }
+  return data;
+};
+
+export type ProductApiPayload = {
+  sku: string;
+  name: string;
+  category_id?: number | string | null;
+  price: number;
+  quantity: number;
+  status?: string;
+  image?: string | null;
+};
+
+// Shared secret embedded at build time — lets the server tell our own app's
+// write requests apart from anyone hitting the API directly.
+const API_KEY_HEADERS = { 'x-api-key': process.env.EXPO_PUBLIC_API_KEY ?? '' };
+
+/**
+ * Creates a product on the backend. Returns the numeric id assigned by the DB.
+ */
+export const createProductOnApi = async (payload: ProductApiPayload): Promise<string> => {
+  const data = await apiCall<{ productId: number | string }>('/products', {
+    method: 'POST',
+    headers: API_KEY_HEADERS,
+    body: JSON.stringify(payload),
+  });
+  return String(data.productId);
+};
+
+/**
+ * Updates an existing product on the backend by id.
+ */
+export const updateProductOnApi = async (id: string, payload: ProductApiPayload): Promise<void> => {
+  await apiCall(`/products/${id}`, {
+    method: 'PUT',
+    headers: API_KEY_HEADERS,
+    body: JSON.stringify(payload),
+  });
+};
+
+/**
+ * Deletes a product on the backend by id.
+ */
+export const deleteProductOnApi = async (id: string): Promise<void> => {
+  await apiCall(`/products/${id}`, {
+    method: 'DELETE',
+    headers: API_KEY_HEADERS,
+  });
 };

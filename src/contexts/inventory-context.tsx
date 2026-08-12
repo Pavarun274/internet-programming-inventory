@@ -1,7 +1,13 @@
-import React, { createContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import React, { createContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { PRODUCTS, RECENT_ACTIVITY, Product, RecentActivity, getStockStatus } from '@/constants/inventory-data';
-import { apiCall, fetchProductsFromApi } from '@/services/api';
+import { PRODUCTS, RECENT_ACTIVITY, CATEGORIES, Product, RecentActivity, getStockStatus } from '@/constants/inventory-data';
+import {
+  fetchProductsFromApi,
+  fetchCategoriesFromApi,
+  createProductOnApi,
+  updateProductOnApi,
+  deleteProductOnApi,
+} from '@/services/api';
 
 export type SortOption = 'default' | 'price-asc' | 'price-desc' | 'qty-asc' | 'name-asc';
 
@@ -56,6 +62,14 @@ function migrateProducts(parsed: any[]): Product[] {
   });
 }
 
+// Images picked from the device library are local file:// URIs that only
+// resolve on that device — only http(s) URLs are meaningful to store
+// centrally, so device-local picks stay local-only instead of polluting
+// the backend with unusable paths.
+function toRemoteImageUrl(image: string | undefined): string | null {
+  return image && /^https?:\/\//i.test(image) ? image : null;
+}
+
 function mergeLocalImages(products: Product[]): Product[] {
   const localImages = new Map(
     PRODUCTS.filter((p) => p.image).map((p) => [p.id, p.image as string])
@@ -74,6 +88,43 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortOption, setSortOption] = useState<SortOption>('default');
 
+  // Best-effort local category slug -> backend category_id lookup, populated on mount
+  const categoryIdMapRef = useRef<Record<string, number>>({});
+
+  // Maps a product's local id to its backend row id. Kept separate from the
+  // product's own `id` field — overwriting `id` with the raw backend id risks
+  // colliding with locally-seeded demo products (e.g. both landing on "1"),
+  // which breaks list rendering (duplicate React keys).
+  const backendProductIdMapRef = useRef<Record<string, string>>({});
+
+  const resolveCategoryId = useCallback((categorySlug: string): number | null => {
+    return categoryIdMapRef.current[categorySlug] ?? null;
+  }, []);
+
+  useEffect(() => {
+    async function loadCategoryIds() {
+      try {
+        const backendCategories = await fetchCategoriesFromApi();
+        const map: Record<string, number> = {};
+        for (const localCat of CATEGORIES) {
+          if (localCat.id === 'all') continue;
+          const match = backendCategories.find((bc: any) => {
+            const bcName = String(bc.name ?? bc.category_name ?? bc.title ?? '').toLowerCase().replace(/[^a-z]/g, '');
+            const localName = localCat.name.toLowerCase().replace(/[^a-z]/g, '');
+            return bcName === localName || bcName.startsWith(localCat.id);
+          });
+          if (match) {
+            map[localCat.id] = match.id ?? match.category_id;
+          }
+        }
+        categoryIdMapRef.current = map;
+      } catch (e) {
+        console.warn('Could not resolve backend category ids, product sync will use null category_id:', e);
+      }
+    }
+    loadCategoryIds();
+  }, []);
+
   // Load from Backend API / GitHub / AsyncStorage on mount
   useEffect(() => {
     async function loadStoredData() {
@@ -84,6 +135,12 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
           const migrated = mergeLocalImages(migrateProducts(data));
           setProducts(migrated);
           await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+          // These products' `id` already IS the backend row id (see
+          // fetchProductsFromApi) — seed the map so later edits/deletes on
+          // them reach the server instead of only updating local state.
+          for (const p of migrated) {
+            backendProductIdMapRef.current[p.id] = p.id;
+          }
           return;
         }
       } catch (backendErr) {
@@ -151,9 +208,10 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addProduct = useCallback((newFields: Omit<Product, 'id' | 'lastUpdated'>) => {
+    const localId = Date.now().toString();
     const newProd: Product = {
       ...newFields,
-      id: Date.now().toString(),
+      id: localId,
       lastUpdated: new Date().toISOString().split('T')[0],
     };
     setProducts((prev) => {
@@ -169,20 +227,41 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       productName: newFields.name,
       quantity: Number(newFields.quantity),
     });
-  }, [logActivity]);
+
+    // Best-effort sync to backend; on success, remember its row id (keyed by
+    // the local id) so future edits/deletes target the right record. The
+    // product's own `id` is never overwritten — a raw backend id could
+    // collide with a locally-seeded demo product's id.
+    createProductOnApi({
+      sku: newFields.sku,
+      name: newFields.name,
+      category_id: resolveCategoryId(newFields.category),
+      price: newFields.price,
+      quantity: newFields.quantity,
+      status: 'active',
+      image: toRemoteImageUrl(newFields.image),
+    })
+      .then((backendId) => {
+        backendProductIdMapRef.current[localId] = backendId;
+      })
+      .catch((e) => console.warn('Could not sync new product to backend:', e));
+  }, [logActivity, resolveCategoryId]);
 
   const updateProduct = useCallback((id: string, updates: Partial<Product>) => {
+    let merged: Product | undefined;
+
     setProducts((prev) => {
       const original = prev.find((p) => p.id === id);
-      const updated = prev.map((p) =>
-        p.id === id
-          ? {
-              ...p,
-              ...updates,
-              lastUpdated: new Date().toISOString().split('T')[0],
-            }
-          : p
-      );
+      const updated = prev.map((p) => {
+        if (p.id !== id) return p;
+        const next = {
+          ...p,
+          ...updates,
+          lastUpdated: new Date().toISOString().split('T')[0],
+        };
+        merged = next;
+        return next;
+      });
       AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated)).catch((e) =>
         console.error('Failed to save products to storage:', e)
       );
@@ -212,7 +291,25 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       }
       return updated;
     });
-  }, [logActivity]);
+
+    // Best-effort sync to backend using the full merged record — sending only
+    // the partial `updates` would blank out columns this call didn't touch,
+    // since the backend UPDATE sets every column unconditionally. Only
+    // products created through this session (or otherwise mapped) have a
+    // known backend row to target.
+    const backendId = backendProductIdMapRef.current[id];
+    if (merged && backendId) {
+      updateProductOnApi(backendId, {
+        sku: merged.sku,
+        name: merged.name,
+        category_id: resolveCategoryId(merged.category),
+        price: merged.price,
+        quantity: merged.quantity,
+        status: 'active',
+        image: toRemoteImageUrl(merged.image),
+      }).catch((e) => console.warn('Could not sync product update to backend:', e));
+    }
+  }, [logActivity, resolveCategoryId]);
 
   const deleteProduct = useCallback((id: string) => {
     setProducts((prev) => {
@@ -231,6 +328,12 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       }
       return updated;
     });
+
+    const backendId = backendProductIdMapRef.current[id];
+    if (backendId) {
+      deleteProductOnApi(backendId).catch((e) => console.warn('Could not sync product deletion to backend:', e));
+      delete backendProductIdMapRef.current[id];
+    }
   }, [logActivity]);
 
   const getProductById = useCallback(

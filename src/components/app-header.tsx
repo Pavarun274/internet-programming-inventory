@@ -1,6 +1,5 @@
-import { Pressable, StyleSheet, View, ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, View, ViewStyle, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Platform } from 'react-native';
 import { router } from 'expo-router';
 
 import { useMenu } from '@/contexts/menu-context';

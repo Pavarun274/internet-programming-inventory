@@ -74,6 +74,13 @@ const STORE_COLORS: Record<string, string> = {
   s3: '#F97316',
 };
 
+/** Format currency short (e.g. 1,234,567 → ฿1.23M or 285,000 → ฿285K) */
+function formatCurrencyShort(value: number): string {
+  if (value >= 1_000_000) return `฿${(value / 1_000_000).toFixed(2)}M`;
+  if (value >= 1_000) return `฿${(value / 1_000).toFixed(0)}K`;
+  return `฿${value.toLocaleString()}`;
+}
+
 export default function FinancesScreen() {
   const theme = useTheme();
   const scheme = useColorScheme();
@@ -81,12 +88,13 @@ export default function FinancesScreen() {
   const cardBg = isDark ? SemanticColors.cardDark : SemanticColors.card;
   const shadowColor = isDark ? '#000' : '#E4E4E7';
   const borderColor = isDark ? '#27272A' : '#E4E4E7';
+  const dividerColor = isDark ? '#27272A' : '#F4F4F5';
 
   const { products } = useInventory();
   const paddingBottom = Platform.select({ ios: 90, android: 100, web: 24, default: 24 });
 
   // Active States
-  const [selectedChartStore, setSelectedChartStore] = useState('all'); // 'all' | 's1' | 's2' | 's3'
+  const [selectedChartStore, setSelectedChartStore] = useState('all');
   const [selectedMonthIdx, setSelectedMonthIdx] = useState(MONTHLY_SALES_BY_STORE.length - 1);
   const [selectedDailyStoreFilter, setSelectedDailyStoreFilter] = useState('all');
 
@@ -100,33 +108,20 @@ export default function FinancesScreen() {
     const catProducts = products.filter((p) => p.category === cat.id);
     const value = catProducts.reduce((sum, p) => sum + p.price * p.quantity, 0);
     const percentage = totalValue > 0 ? (value / totalValue) * 100 : 0;
-    return {
-      ...cat,
-      value,
-      percentage,
-    };
+    return { ...cat, value, percentage };
   });
 
   // Store comparison calculations based on real product storeQuantities
   const storeComparison = STORES.map((store) => {
     let storeValue = 0;
     let storeUnits = 0;
-
     products.forEach((p) => {
       const q = p.storeQuantities?.[store.id] ?? (p.storeIds?.includes(store.id) ? p.quantity : 0);
       storeUnits += q;
       storeValue += q * p.price;
     });
-
     const percentage = totalValue > 0 ? (storeValue / totalValue) * 100 : 0;
-
-    return {
-      ...store,
-      storeValue,
-      storeUnits,
-      percentage,
-      color: STORE_COLORS[store.id] || SemanticColors.primary,
-    };
+    return { ...store, storeValue, storeUnits, percentage, color: STORE_COLORS[store.id] || SemanticColors.primary };
   });
 
   // Active Month Data & Dynamic Max calculation
@@ -153,76 +148,82 @@ export default function FinancesScreen() {
       >
         <View style={styles.centered}>
           <View style={[styles.content, { maxWidth: MaxContentWidth }]}>
-            {/* Page Header */}
-            <View style={styles.header}>
-              <ThemedText style={[styles.heading, { color: theme.text }]}>
-                Financial Overview
-              </ThemedText>
-              <ThemedText style={[styles.subtitle, { color: theme.textSecondary }]}>
-                Analyze store-by-store sales trends, daily top sellers, and asset distributions
-              </ThemedText>
-            </View>
 
-            {/* KPI Cards */}
-            <View style={styles.list}>
-              <View style={[styles.financeCard, { backgroundColor: cardBg, shadowColor }]}>
-                <ThemedText style={[styles.kpiLabel, { color: theme.textSecondary }]}>
-                  TOTAL ASSET VALUE (RETAIL)
-                </ThemedText>
-                <ThemedText style={[styles.kpiValue, { color: SemanticColors.primary }]}>
-                  ฿{totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </ThemedText>
-                <ThemedText style={[styles.kpiDescription, { color: theme.textSecondary }]}>
-                  Total selling value of all items currently in stock
-                </ThemedText>
-              </View>
-
-              <View style={[styles.financeCard, { backgroundColor: cardBg, shadowColor }]}>
-                <ThemedText style={[styles.kpiLabel, { color: theme.textSecondary }]}>
-                  ESTIMATED ACQUISITION COST
-                </ThemedText>
-                <ThemedText style={[styles.kpiValue, { color: SemanticColors.warning }]}>
-                  ฿{estimatedCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </ThemedText>
-                <ThemedText style={[styles.kpiDescription, { color: theme.textSecondary }]}>
-                  Calculated cost based on wholesale estimation
-                </ThemedText>
-              </View>
-
-              <View style={[styles.financeCard, { backgroundColor: cardBg, shadowColor }]}>
-                <ThemedText style={[styles.kpiLabel, { color: theme.textSecondary }]}>
-                  POTENTIAL GROSS PROFIT
-                </ThemedText>
-                <ThemedText style={[styles.kpiValue, { color: SemanticColors.success }]}>
-                  ฿{potentialProfit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </ThemedText>
-                <ThemedText style={[styles.kpiDescription, { color: theme.textSecondary }]}>
-                  Revenue remaining after deducting estimated acquisition cost
-                </ThemedText>
-              </View>
-            </View>
-
-            {/* FEATURE 1: Interactive Monthly Line Chart with Store Separation */}
-            <View style={[styles.chartCard, { backgroundColor: cardBg, shadowColor }]}>
-              <View style={styles.chartHeader}>
-                <View style={{ flex: 1 }}>
-                  <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
-                    Monthly Sales Trend (Separated by Store)
-                  </ThemedText>
-                  <ThemedText style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
-                    Select store or view all multi-store lines simultaneously
-                  </ThemedText>
+            {/* ──── COMPACT KPI SUMMARY CARD ──── */}
+            <View style={[styles.kpiCard, { backgroundColor: cardBg, shadowColor }]}>
+              {/* Asset Value */}
+              <View style={styles.kpiCol}>
+                <View style={[styles.kpiIconCircle, { backgroundColor: SemanticColors.primaryLight }]}>
+                  <SymbolView
+                    name={{ ios: 'banknote', android: 'account_balance_wallet', web: 'account_balance_wallet' }}
+                    size={16}
+                    tintColor={SemanticColors.primary}
+                  />
                 </View>
+                <ThemedText style={[styles.kpiLabel, { color: theme.textSecondary }]}>
+                  Asset Value
+                </ThemedText>
+                <ThemedText style={[styles.kpiValue, { color: SemanticColors.primary }]} numberOfLines={1}>
+                  {formatCurrencyShort(totalValue)}
+                </ThemedText>
               </View>
 
-              {/* Store Tabs for Line Chart */}
+              <View style={[styles.kpiDivider, { backgroundColor: dividerColor }]} />
+
+              {/* Est. Cost */}
+              <View style={styles.kpiCol}>
+                <View style={[styles.kpiIconCircle, { backgroundColor: SemanticColors.warningLight }]}>
+                  <SymbolView
+                    name={{ ios: 'cart', android: 'shopping_cart', web: 'shopping_cart' }}
+                    size={16}
+                    tintColor={SemanticColors.warning}
+                  />
+                </View>
+                <ThemedText style={[styles.kpiLabel, { color: theme.textSecondary }]}>
+                  Est. Cost
+                </ThemedText>
+                <ThemedText style={[styles.kpiValue, { color: SemanticColors.warning }]} numberOfLines={1}>
+                  {formatCurrencyShort(estimatedCost)}
+                </ThemedText>
+              </View>
+
+              <View style={[styles.kpiDivider, { backgroundColor: dividerColor }]} />
+
+              {/* Profit */}
+              <View style={styles.kpiCol}>
+                <View style={[styles.kpiIconCircle, { backgroundColor: SemanticColors.successLight }]}>
+                  <SymbolView
+                    name={{ ios: 'chart.line.uptrend.xyaxis', android: 'trending_up', web: 'trending_up' }}
+                    size={16}
+                    tintColor={SemanticColors.success}
+                  />
+                </View>
+                <ThemedText style={[styles.kpiLabel, { color: theme.textSecondary }]}>
+                  Profit
+                </ThemedText>
+                <ThemedText style={[styles.kpiValue, { color: SemanticColors.success }]} numberOfLines={1}>
+                  {formatCurrencyShort(potentialProfit)}
+                </ThemedText>
+              </View>
+            </View>
+
+            {/* ──── MONTHLY SALES CHART ──── */}
+            <View style={[styles.chartCard, { backgroundColor: cardBg, shadowColor }]}>
+              <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
+                Monthly Sales
+              </ThemedText>
+              <ThemedText style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+                Revenue trend by store · Jan – Jul 2026
+              </ThemedText>
+
+              {/* Store Filter Chips */}
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.chartStoreFilterRow}
+                contentContainerStyle={styles.chipRow}
               >
                 <CategoryChip
-                  label="All Stores (Multi-Line)"
+                  label="All Stores"
                   isSelected={selectedChartStore === 'all'}
                   color={SemanticColors.primary}
                   onPress={() => setSelectedChartStore('all')}
@@ -238,159 +239,73 @@ export default function FinancesScreen() {
                 ))}
               </ScrollView>
 
-              {/* Multi-Store Legend */}
-              <View style={styles.multiLegendRow}>
-                <View style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: STORE_COLORS.s1 }]} />
-                  <ThemedText style={[styles.legendText, { color: theme.text }]}>Bangkok Warehouse</ThemedText>
-                </View>
-                <View style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: STORE_COLORS.s2 }]} />
-                  <ThemedText style={[styles.legendText, { color: theme.text }]}>Siam Paragon</ThemedText>
-                </View>
-                <View style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: STORE_COLORS.s3 }]} />
-                  <ThemedText style={[styles.legendText, { color: theme.text }]}>Samut Prakan</ThemedText>
-                </View>
-              </View>
-
-              {/* Active Month Store Breakdown Box */}
-              <View style={[styles.monthBadgeCard, { backgroundColor: isDark ? '#1F2937' : '#EFF6FF' }]}>
-                <View style={styles.monthBadgeHeader}>
-                  <ThemedText style={[styles.monthBadgeTitle, { color: theme.text }]}>
-                    {activeMonthData.month} 2026 Sales Breakdown
-                  </ThemedText>
-                  <ThemedText style={[styles.monthBadgeTotal, { color: SemanticColors.primary }]}>
-                    Total: ฿{activeMonthData.total2026.toLocaleString()}
-                  </ThemedText>
-                </View>
-                <View style={styles.storeBreakdownGrid}>
-                  <View style={styles.storeBreakdownItem}>
-                    <ThemedText style={[styles.storeBreakdownLabel, { color: STORE_COLORS.s1 }]}>
-                      Bangkok:
-                    </ThemedText>
-                    <ThemedText style={[styles.storeBreakdownVal, { color: theme.text }]}>
-                      ฿{activeMonthData.s1.toLocaleString()}
-                    </ThemedText>
-                  </View>
-                  <View style={styles.storeBreakdownItem}>
-                    <ThemedText style={[styles.storeBreakdownLabel, { color: STORE_COLORS.s2 }]}>
-                      Siam Paragon:
-                    </ThemedText>
-                    <ThemedText style={[styles.storeBreakdownVal, { color: theme.text }]}>
-                      ฿{activeMonthData.s2.toLocaleString()}
-                    </ThemedText>
-                  </View>
-                  <View style={styles.storeBreakdownItem}>
-                    <ThemedText style={[styles.storeBreakdownLabel, { color: STORE_COLORS.s3 }]}>
-                      Samut Prakan:
-                    </ThemedText>
-                    <ThemedText style={[styles.storeBreakdownVal, { color: theme.text }]}>
-                      ฿{activeMonthData.s3.toLocaleString()}
-                    </ThemedText>
-                  </View>
-                </View>
-              </View>
-
-              {/* Line Chart Visual Graph */}
-              <View style={styles.lineChartContainer}>
-                {/* Horizontal Gridlines */}
+              {/* Bar Chart */}
+              <View style={styles.chartContainer}>
+                {/* Y-axis gridlines */}
                 <View style={styles.gridLineContainer}>
                   {[1, 0.75, 0.5, 0.25, 0].map((ratio) => (
                     <View key={ratio} style={styles.gridLineRow}>
-                      <ThemedText style={[styles.yAxisText, { color: theme.textSecondary }]}>
+                      <ThemedText style={[styles.yAxisText, { color: theme.textSecondary }]} numberOfLines={1}>
                         ฿{Math.round((chartMaxVal * ratio) / 1000)}k
                       </ThemedText>
-                      <View style={[styles.gridDashLine, { backgroundColor: isDark ? '#374151' : '#E5E7EB' }]} />
+                      <View style={[styles.gridLine, { backgroundColor: isDark ? '#27272A' : '#F4F4F5' }]} />
                     </View>
                   ))}
                 </View>
 
-                {/* Plot Area */}
+                {/* Plot area */}
                 <View style={styles.plotArea}>
                   {MONTHLY_SALES_BY_STORE.map((d, idx) => {
                     const isSelected = selectedMonthIdx === idx;
-                    const hS1 = (d.s1 / (chartMaxVal * 1.1)) * 100;
-                    const hS2 = (d.s2 / (chartMaxVal * 1.1)) * 100;
-                    const hS3 = (d.s3 / (chartMaxVal * 1.1)) * 100;
-                    const hTotal = (d.total2026 / (chartMaxVal * 1.1)) * 100;
+                    const hS1 = (d.s1 / (chartMaxVal * 1.15)) * 100;
+                    const hS2 = (d.s2 / (chartMaxVal * 1.15)) * 100;
+                    const hS3 = (d.s3 / (chartMaxVal * 1.15)) * 100;
 
                     return (
                       <Pressable
                         key={d.month}
                         onPress={() => setSelectedMonthIdx(idx)}
-                        style={styles.lineCol}
+                        style={styles.barCol}
                       >
-                        <View style={styles.trackArea}>
-                          {/* Store 1 Line Node (Bangkok) */}
+                        <View style={styles.barTrack}>
+                          {/* Stacked / individual bars */}
                           {(selectedChartStore === 'all' || selectedChartStore === 's1') && (
-                            <View
-                              style={[
-                                styles.storeNode,
-                                {
-                                  bottom: `${hS1}%`,
-                                  backgroundColor: STORE_COLORS.s1,
-                                  borderColor: isSelected ? '#fff' : 'transparent',
-                                  transform: [{ scale: isSelected ? 1.3 : 1 }],
-                                },
-                              ]}
-                            />
+                            <View style={[styles.barSegment, {
+                              height: `${hS1}%`,
+                              backgroundColor: STORE_COLORS.s1,
+                              opacity: isSelected ? 1 : 0.6,
+                            }]} />
                           )}
-
-                          {/* Store 2 Line Node (Siam Paragon) */}
                           {(selectedChartStore === 'all' || selectedChartStore === 's2') && (
-                            <View
-                              style={[
-                                styles.storeNode,
-                                {
-                                  bottom: `${hS2}%`,
-                                  backgroundColor: STORE_COLORS.s2,
-                                  borderColor: isSelected ? '#fff' : 'transparent',
-                                  transform: [{ scale: isSelected ? 1.3 : 1 }],
-                                },
-                              ]}
-                            />
+                            <View style={[styles.barSegment, {
+                              height: `${hS2}%`,
+                              backgroundColor: STORE_COLORS.s2,
+                              opacity: isSelected ? 1 : 0.6,
+                            }]} />
                           )}
-
-                          {/* Store 3 Line Node (Samut Prakan) */}
                           {(selectedChartStore === 'all' || selectedChartStore === 's3') && (
-                            <View
-                              style={[
-                                styles.storeNode,
-                                {
-                                  bottom: `${hS3}%`,
-                                  backgroundColor: STORE_COLORS.s3,
-                                  borderColor: isSelected ? '#fff' : 'transparent',
-                                  transform: [{ scale: isSelected ? 1.3 : 1 }],
-                                },
-                              ]}
-                            />
+                            <View style={[styles.barSegment, {
+                              height: `${hS3}%`,
+                              backgroundColor: STORE_COLORS.s3,
+                              opacity: isSelected ? 1 : 0.6,
+                            }]} />
                           )}
-
-                          {/* Connecting Column Segment */}
-                          <View
-                            style={[
-                              styles.lineSegment,
-                              {
-                                height: selectedChartStore === 'all' ? `${hTotal}%` : `${(getStoreVal(d, selectedChartStore) / (chartMaxVal * 1.1)) * 100}%`,
-                                backgroundColor: isSelected
-                                  ? SemanticColors.primary
-                                  : isDark
-                                  ? '#1E3A8A'
-                                  : '#DBEAFE',
-                              },
-                            ]}
-                          />
+                          {/* Dot indicator for selected month */}
+                          {isSelected && (
+                            <View style={[styles.barDot, {
+                              backgroundColor: selectedChartStore === 'all'
+                                ? SemanticColors.primary
+                                : STORE_COLORS[selectedChartStore] || SemanticColors.primary,
+                            }]} />
+                          )}
                         </View>
-                        <ThemedText
-                          style={[
-                            styles.xAxisText,
-                            {
-                              color: isSelected ? SemanticColors.primary : theme.textSecondary,
-                              fontWeight: isSelected ? '700' : '500',
-                            },
-                          ]}
-                        >
+                        <ThemedText style={[
+                          styles.xAxisText,
+                          {
+                            color: isSelected ? SemanticColors.primary : theme.textSecondary,
+                            fontWeight: isSelected ? '700' : '500',
+                          },
+                        ]}>
                           {d.month}
                         </ThemedText>
                       </Pressable>
@@ -398,119 +313,83 @@ export default function FinancesScreen() {
                   })}
                 </View>
               </View>
-            </View>
 
-            {/* SEPARATE STORE LINE CHARTS GRID (กราฟแยกรายสาขาแต่ละคลัง) */}
-            <View style={[styles.distributionCard, { backgroundColor: cardBg, shadowColor }]}>
-              <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
-                Separate Store Sales Graphs (กราฟแยกแต่ละ Store)
-              </ThemedText>
-              <ThemedText style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
-                Individual monthly line trajectory per store location
-              </ThemedText>
-
-              <View style={styles.miniChartGrid}>
-                {STORES.map((store) => {
-                  const sColor = STORE_COLORS[store.id] || SemanticColors.primary;
-                  const storeMax = Math.max(...MONTHLY_SALES_BY_STORE.map((d) => getStoreVal(d, store.id)));
-                  const latestVal = getStoreVal(MONTHLY_SALES_BY_STORE[MONTHLY_SALES_BY_STORE.length - 1], store.id);
-
-                  return (
-                    <View key={store.id} style={[styles.miniChartCard, { borderColor }]}>
-                      <View style={styles.miniChartHeader}>
-                        <View style={styles.storeTitleWrapper}>
-                          <View style={[styles.storeColorDot, { backgroundColor: sColor }]} />
-                          <ThemedText style={[styles.miniChartTitle, { color: theme.text }]} numberOfLines={1}>
-                            {store.name.split(' - ')[0]}
-                          </ThemedText>
-                        </View>
-                        <ThemedText style={[styles.miniChartVal, { color: sColor }]}>
-                          ฿{latestVal.toLocaleString()}
-                        </ThemedText>
-                      </View>
-
-                      {/* Mini Line Chart */}
-                      <View style={styles.miniLineCanvas}>
-                        <View style={styles.miniPlotRow}>
-                          {MONTHLY_SALES_BY_STORE.map((d) => {
-                            const val = getStoreVal(d, store.id);
-                            const hPct = (val / (storeMax * 1.15)) * 100;
-                            return (
-                              <View key={d.month} style={styles.miniCol}>
-                                <View
-                                  style={[
-                                    styles.miniBarFill,
-                                    {
-                                      height: `${hPct}%`,
-                                      backgroundColor: sColor,
-                                    },
-                                  ]}
-                                />
-                                <ThemedText style={[styles.miniMonthText, { color: theme.textSecondary }]}>
-                                  {d.month.charAt(0)}
-                                </ThemedText>
-                              </View>
-                            );
-                          })}
-                        </View>
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
-            </View>
-
-            {/* FEATURE 2: Daily Top Selling Product per Store */}
-            <View style={[styles.distributionCard, { backgroundColor: cardBg, shadowColor }]}>
-              <View style={styles.headerWithFilter}>
-                <View>
-                  <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
-                    Daily Top Selling Products
+              {/* Selected Month Breakdown */}
+              <View style={[styles.breakdownBadge, { backgroundColor: isDark ? '#1F2937' : '#F0F4FF' }]}>
+                <View style={styles.breakdownBadgeTop}>
+                  <ThemedText style={[styles.breakdownBadgeMonth, { color: theme.text }]}>
+                    {activeMonthData.month} 2026
                   </ThemedText>
-                  <ThemedText style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
-                    Best performing item each day by store
+                  <ThemedText style={[styles.breakdownBadgeTotal, { color: SemanticColors.primary }]}>
+                    ฿{activeMonthData.total2026.toLocaleString()}
                   </ThemedText>
                 </View>
-
-                {/* Store Filter Selector */}
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.filterRow}
-                >
-                  <CategoryChip
-                    label="All Stores"
-                    isSelected={selectedDailyStoreFilter === 'all'}
-                    color={SemanticColors.primary}
-                    onPress={() => setSelectedDailyStoreFilter('all')}
-                  />
-                  {STORES.map((s) => (
-                    <CategoryChip
-                      key={s.id}
-                      label={s.name.split(' - ')[0]}
-                      isSelected={selectedDailyStoreFilter === s.id}
-                      color={STORE_COLORS[s.id] || SemanticColors.primary}
-                      onPress={() => setSelectedDailyStoreFilter(s.id)}
-                    />
+                <View style={styles.breakdownBadgeStores}>
+                  {[
+                    { key: 's1', label: 'Bangkok', val: activeMonthData.s1 },
+                    { key: 's2', label: 'Siam Paragon', val: activeMonthData.s2 },
+                    { key: 's3', label: 'Samut Prakan', val: activeMonthData.s3 },
+                  ].map((s) => (
+                    <View key={s.key} style={styles.breakdownStoreItem}>
+                      <View style={[styles.breakdownDot, { backgroundColor: STORE_COLORS[s.key] }]} />
+                      <ThemedText style={[styles.breakdownStoreLabel, { color: theme.textSecondary }]}>
+                        {s.label}
+                      </ThemedText>
+                      <ThemedText style={[styles.breakdownStoreVal, { color: theme.text }]}>
+                        ฿{s.val.toLocaleString()}
+                      </ThemedText>
+                    </View>
                   ))}
-                </ScrollView>
+                </View>
               </View>
+            </View>
 
-              {/* Daily Top Sellers List */}
-              <View style={styles.topSellersList}>
+            {/* ──── DAILY TOP SELLERS ──── */}
+            <View style={[styles.card, { backgroundColor: cardBg, shadowColor }]}>
+              <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
+                Daily Top Sellers
+              </ThemedText>
+              <ThemedText style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+                Best performing item each day
+              </ThemedText>
+
+              {/* Store Filter */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.chipRow}
+              >
+                <CategoryChip
+                  label="All Stores"
+                  isSelected={selectedDailyStoreFilter === 'all'}
+                  color={SemanticColors.primary}
+                  onPress={() => setSelectedDailyStoreFilter('all')}
+                />
+                {STORES.map((s) => (
+                  <CategoryChip
+                    key={s.id}
+                    label={s.name.split(' - ')[0]}
+                    isSelected={selectedDailyStoreFilter === s.id}
+                    color={STORE_COLORS[s.id] || SemanticColors.primary}
+                    onPress={() => setSelectedDailyStoreFilter(s.id)}
+                  />
+                ))}
+              </ScrollView>
+
+              {/* Seller List */}
+              <View style={styles.sellerList}>
                 {DAILY_TOP_SELLERS.map((day) => {
                   const filteredItems = day.items.filter(
                     (item) => selectedDailyStoreFilter === 'all' || item.storeId === selectedDailyStoreFilter
                   );
-
                   if (filteredItems.length === 0) return null;
 
                   return (
-                    <View key={day.date} style={[styles.dayCard, { borderColor }]}>
+                    <View key={day.date} style={[styles.dayGroup, { borderColor }]}>
                       <View style={styles.dayHeader}>
                         <SymbolView
                           name={{ ios: 'calendar', android: 'calendar_today', web: 'calendar_today' }}
-                          size={14}
+                          size={13}
                           tintColor={theme.textSecondary}
                         />
                         <ThemedText style={[styles.dayDate, { color: theme.text }]}>
@@ -524,30 +403,25 @@ export default function FinancesScreen() {
                         const storeColor = STORE_COLORS[item.storeId] || SemanticColors.primary;
 
                         return (
-                          <View key={i} style={styles.topSellerRow}>
-                            <View style={styles.topSellerInfo}>
-                              <View style={styles.productBadgeRow}>
-                                <ThemedText style={[styles.topSellerName, { color: theme.text }]} numberOfLines={1}>
+                          <View key={i} style={[styles.sellerRow, i > 0 && { borderTopWidth: 1, borderTopColor: dividerColor }]}>
+                            <View style={styles.sellerLeft}>
+                              <View style={styles.sellerNameRow}>
+                                <ThemedText style={[styles.sellerName, { color: theme.text }]} numberOfLines={1}>
                                   {item.productName}
                                 </ThemedText>
-                                <View style={[styles.storePill, { backgroundColor: storeColor + '20' }]}>
+                                <View style={[styles.storePill, { backgroundColor: storeColor + '18' }]}>
                                   <ThemedText style={[styles.storePillText, { color: storeColor }]}>
                                     {storeName}
                                   </ThemedText>
                                 </View>
                               </View>
-                              <ThemedText style={[styles.topSellerMeta, { color: theme.textSecondary }]}>
-                                {item.qtySold} units sold today
+                              <ThemedText style={[styles.sellerMeta, { color: theme.textSecondary }]}>
+                                {item.qtySold} units sold
                               </ThemedText>
                             </View>
-                            <View style={styles.topSellerRev}>
-                              <ThemedText style={[styles.topSellerRevVal, { color: SemanticColors.success }]}>
-                                ฿{item.revenue.toLocaleString()}
-                              </ThemedText>
-                              <ThemedText style={[styles.topSellerBadge, { color: SemanticColors.primary }]}>
-                                #1 Top Seller
-                              </ThemedText>
-                            </View>
+                            <ThemedText style={[styles.sellerRevenue, { color: SemanticColors.success }]}>
+                              ฿{item.revenue.toLocaleString()}
+                            </ThemedText>
                           </View>
                         );
                       })}
@@ -557,50 +431,41 @@ export default function FinancesScreen() {
               </View>
             </View>
 
-            {/* FEATURE 3: Store Financial & Asset Comparison Chart */}
-            <View style={[styles.distributionCard, { backgroundColor: cardBg, shadowColor }]}>
+            {/* ──── STORE COMPARISON ──── */}
+            <View style={[styles.card, { backgroundColor: cardBg, shadowColor }]}>
               <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
-                Store Financial & Asset Comparison
+                Store Comparison
               </ThemedText>
               <ThemedText style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
-                Asset value and stock distribution across store locations
+                Asset value by location
               </ThemedText>
 
-              <View style={styles.storeCompList}>
+              <View style={styles.compList}>
                 {storeComparison.map((st) => (
-                  <View key={st.id} style={[styles.storeCompCard, { borderColor }]}>
-                    <View style={styles.storeCompHeader}>
-                      <View style={styles.storeTitleWrapper}>
-                        <View style={[styles.storeColorDot, { backgroundColor: st.color }]} />
-                        <View>
-                          <ThemedText style={[styles.storeCompName, { color: theme.text }]}>
+                  <View key={st.id} style={[styles.compRow, { borderColor }]}>
+                    <View style={styles.compHeader}>
+                      <View style={styles.compLeft}>
+                        <View style={[styles.compDot, { backgroundColor: st.color }]} />
+                        <View style={styles.compInfo}>
+                          <ThemedText style={[styles.compName, { color: theme.text }]} numberOfLines={1}>
                             {st.name}
                           </ThemedText>
-                          <ThemedText style={[styles.storeCompSub, { color: theme.textSecondary }]}>
+                          <ThemedText style={[styles.compMeta, { color: theme.textSecondary }]}>
                             {st.type} · {st.storeUnits.toLocaleString()} units
                           </ThemedText>
                         </View>
                       </View>
-                      <ThemedText style={[styles.storeCompVal, { color: st.color }]}>
+                      <ThemedText style={[styles.compValue, { color: st.color }]} numberOfLines={1}>
                         ฿{st.storeValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                       </ThemedText>
                     </View>
-
-                    {/* Value Share Progress Bar */}
-                    <View style={styles.barWrapper}>
-                      <View style={[styles.barBg, { backgroundColor: isDark ? '#374151' : '#F3F4F6' }]}>
-                        <View
-                          style={[
-                            styles.barFill,
-                            {
-                              width: `${Math.max(2, st.percentage)}%`,
-                              backgroundColor: st.color,
-                            },
-                          ]}
-                        />
+                    {/* Progress bar */}
+                    <View style={styles.progressRow}>
+                      <View style={[styles.progressBg, { backgroundColor: isDark ? '#27272A' : '#F4F4F5' }]}>
+                        <View style={[styles.progressFill, { width: `${Math.max(3, st.percentage)}%`, backgroundColor: st.color }]} />
                       </View>
-                      <ThemedText style={[styles.percentageText, { color: theme.textSecondary }]}>
-                        {st.percentage.toFixed(1)}% share
+                      <ThemedText style={[styles.progressPct, { color: theme.textSecondary }]}>
+                        {st.percentage.toFixed(1)}%
                       </ThemedText>
                     </View>
                   </View>
@@ -608,36 +473,29 @@ export default function FinancesScreen() {
               </View>
             </View>
 
-            {/* Category Breakdown Card */}
-            <View style={[styles.distributionCard, { backgroundColor: cardBg, shadowColor }]}>
+            {/* ──── CATEGORY BREAKDOWN ──── */}
+            <View style={[styles.card, { backgroundColor: cardBg, shadowColor }]}>
               <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
-                Value Breakdown by Category
+                Value by Category
               </ThemedText>
 
-              <View style={styles.breakdownWrapper}>
+              <View style={styles.catList}>
                 {categoryFinances.map((cat) => (
-                  <View key={cat.id} style={styles.breakdownRow}>
-                    <View style={styles.categoryInfo}>
-                      <ThemedText style={[styles.categoryName, { color: theme.text }]}>
+                  <View key={cat.id} style={styles.catRow}>
+                    <View style={styles.catInfo}>
+                      <View style={[styles.catDot, { backgroundColor: cat.color }]} />
+                      <ThemedText style={[styles.catName, { color: theme.text }]}>
                         {cat.name}
                       </ThemedText>
-                      <ThemedText style={[styles.categoryValText, { color: theme.text }]}>
+                      <ThemedText style={[styles.catVal, { color: theme.text }]}>
                         ฿{cat.value.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                       </ThemedText>
                     </View>
-                    <View style={styles.barWrapper}>
-                      <View style={[styles.barBg, { backgroundColor: isDark ? '#374151' : '#F3F4F6' }]}>
-                        <View
-                          style={[
-                            styles.barFill,
-                            {
-                              width: `${Math.max(2, cat.percentage)}%`,
-                              backgroundColor: cat.color,
-                            },
-                          ]}
-                        />
+                    <View style={styles.progressRow}>
+                      <View style={[styles.progressBg, { backgroundColor: isDark ? '#27272A' : '#F4F4F5' }]}>
+                        <View style={[styles.progressFill, { width: `${Math.max(3, cat.percentage)}%`, backgroundColor: cat.color }]} />
                       </View>
-                      <ThemedText style={[styles.percentageText, { color: theme.textSecondary }]}>
+                      <ThemedText style={[styles.progressPct, { color: theme.textSecondary }]}>
                         {cat.percentage.toFixed(1)}%
                       </ThemedText>
                     </View>
@@ -662,144 +520,90 @@ const styles = StyleSheet.create({
   },
   content: {
     width: '100%',
-    gap: Spacing.three,
+    gap: 16,
   },
-  header: {
-    gap: 4,
-    marginBottom: Spacing.one,
-  },
-  heading: {
-    fontSize: 28,
-    fontWeight: '700',
-    lineHeight: 34,
-  },
-  subtitle: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  list: {
-    gap: Spacing.three,
-  },
-  financeCard: {
+
+  /* ── KPI Summary Card ── */
+  kpiCard: {
+    flexDirection: 'row',
     borderRadius: 16,
-    padding: 18,
+    padding: 16,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
+    shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
-    gap: 6,
+    alignItems: 'center',
+  },
+  kpiCol: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 4,
+  },
+  kpiIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
   },
   kpiLabel: {
     fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.8,
+    fontWeight: '600',
   },
   kpiValue: {
-    fontSize: 26,
+    fontSize: 18,
     fontWeight: '800',
   },
-  kpiDescription: {
-    fontSize: 12,
-    fontWeight: '500',
-    marginTop: 2,
+  kpiDivider: {
+    width: 1,
+    height: 48,
+    marginHorizontal: 4,
   },
-  distributionCard: {
+
+  /* ── Shared Card ── */
+  card: {
     borderRadius: 16,
     padding: 18,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
+    shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
-    gap: 16,
+    gap: 12,
   },
+
+  /* ── Section Typography ── */
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
   },
   sectionSubtitle: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '500',
-    marginTop: 2,
+    marginTop: -4,
   },
+
+  /* ── Chip Row ── */
+  chipRow: {
+    gap: 8,
+    paddingVertical: 4,
+  },
+
+  /* ── Monthly Chart ── */
   chartCard: {
     borderRadius: 16,
     padding: 18,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
+    shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
-    gap: 14,
-  },
-  chartHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  chartStoreFilterRow: {
-    gap: 8,
-    paddingVertical: 2,
-  },
-  multiLegendRow: {
-    flexDirection: 'row',
     gap: 12,
-    flexWrap: 'wrap',
   },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  legendText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  monthBadgeCard: {
-    padding: 12,
-    borderRadius: 12,
-    gap: 8,
-  },
-  monthBadgeHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  monthBadgeTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  monthBadgeTotal: {
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  storeBreakdownGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  storeBreakdownItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  storeBreakdownLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  storeBreakdownVal: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  lineChartContainer: {
-    height: 180,
-    marginTop: 8,
+  chartContainer: {
+    height: 200,
     position: 'relative',
     justifyContent: 'flex-end',
+    marginTop: 4,
   },
   gridLineContainer: {
     position: 'absolute',
@@ -812,146 +616,137 @@ const styles = StyleSheet.create({
   gridLineRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   yAxisText: {
     fontSize: 10,
     fontWeight: '600',
-    width: 32,
+    width: 40,
+    textAlign: 'right',
   },
-  gridDashLine: {
+  gridLine: {
     flex: 1,
     height: 1,
   },
   plotArea: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingLeft: 40,
-    height: 160,
+    justifyContent: 'space-around',
+    paddingLeft: 48,
+    height: 180,
     alignItems: 'flex-end',
   },
-  lineCol: {
+  barCol: {
     alignItems: 'center',
+    flex: 1,
     height: '100%',
     justifyContent: 'flex-end',
-    flex: 1,
   },
-  trackArea: {
-    height: 130,
+  barTrack: {
     width: '100%',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    position: 'relative',
+    height: 150,
+    gap: 2,
   },
-  storeNode: {
-    position: 'absolute',
+  barSegment: {
     width: 10,
-    height: 10,
     borderRadius: 5,
-    borderWidth: 1.5,
-    zIndex: 3,
+    minHeight: 4,
   },
-  lineSegment: {
-    width: 3,
-    borderRadius: 2,
-  },
-  xAxisText: {
-    fontSize: 11,
-    marginTop: 8,
-  },
-  miniChartGrid: {
-    gap: 12,
-  },
-  miniChartCard: {
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 12,
-    gap: 8,
-  },
-  miniChartHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  miniChartTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    flex: 1,
-  },
-  miniChartVal: {
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  miniLineCanvas: {
-    height: 60,
-    justifyContent: 'flex-end',
-  },
-  miniPlotRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    height: 50,
-  },
-  miniCol: {
-    alignItems: 'center',
-    flex: 1,
-    height: '100%',
-    justifyContent: 'flex-end',
-    gap: 4,
-  },
-  miniBarFill: {
+  barDot: {
+    position: 'absolute',
+    top: -2,
     width: 6,
+    height: 6,
     borderRadius: 3,
   },
-  miniMonthText: {
-    fontSize: 9,
-    fontWeight: '600',
+  xAxisText: {
+    fontSize: 12,
+    marginTop: 6,
   },
-  headerWithFilter: {
+
+  /* ── Month Breakdown Badge ── */
+  breakdownBadge: {
+    borderRadius: 12,
+    padding: 14,
     gap: 10,
   },
-  filterRow: {
+  breakdownBadgeTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  breakdownBadgeMonth: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  breakdownBadgeTotal: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  breakdownBadgeStores: {
+    gap: 6,
+  },
+  breakdownStoreItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
-    paddingVertical: 4,
   },
-  topSellersList: {
-    gap: 12,
+  breakdownDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
-  dayCard: {
-    borderRadius: 14,
+  breakdownStoreLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+    flex: 1,
+  },
+  breakdownStoreVal: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+
+  /* ── Daily Top Sellers ── */
+  sellerList: {
+    gap: 10,
+  },
+  dayGroup: {
+    borderRadius: 12,
     borderWidth: 1,
     padding: 12,
-    gap: 10,
+    gap: 6,
   },
   dayHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 2,
+    marginBottom: 4,
   },
   dayDate: {
     fontSize: 13,
     fontWeight: '700',
   },
-  topSellerRow: {
+  sellerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 4,
+    paddingVertical: 6,
   },
-  topSellerInfo: {
+  sellerLeft: {
     flex: 1,
     paddingRight: 8,
   },
-  productBadgeRow: {
+  sellerNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     flexWrap: 'wrap',
   },
-  topSellerName: {
+  sellerName: {
     fontSize: 14,
     fontWeight: '600',
+    flexShrink: 1,
   },
   storePill: {
     paddingHorizontal: 6,
@@ -962,98 +757,110 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
   },
-  topSellerMeta: {
+  sellerMeta: {
     fontSize: 12,
     fontWeight: '500',
-    marginTop: 2,
+    marginTop: 1,
   },
-  topSellerRev: {
-    alignItems: 'flex-end',
-  },
-  topSellerRevVal: {
+  sellerRevenue: {
     fontSize: 14,
     fontWeight: '700',
+    flexShrink: 0,
   },
-  topSellerBadge: {
-    fontSize: 10,
-    fontWeight: '700',
-    marginTop: 2,
+
+  /* ── Store Comparison ── */
+  compList: {
+    gap: 10,
   },
-  storeCompList: {
-    gap: 12,
-  },
-  storeCompCard: {
-    borderRadius: 14,
+  compRow: {
+    borderRadius: 12,
     borderWidth: 1,
     padding: 14,
     gap: 10,
   },
-  storeCompHeader: {
+  compHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  storeTitleWrapper: {
+  compLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    flex: 1,
+    marginRight: 8,
   },
-  storeColorDot: {
+  compDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
   },
-  storeCompName: {
+  compInfo: {
+    flex: 1,
+  },
+  compName: {
     fontSize: 14,
     fontWeight: '700',
   },
-  storeCompSub: {
+  compMeta: {
     fontSize: 12,
     fontWeight: '500',
-    marginTop: 2,
+    marginTop: 1,
   },
-  storeCompVal: {
-    fontSize: 16,
+  compValue: {
+    fontSize: 15,
     fontWeight: '800',
+    flexShrink: 0,
   },
-  breakdownWrapper: {
-    gap: 14,
-  },
-  breakdownRow: {
-    gap: 6,
-  },
-  categoryInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  categoryName: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  categoryValText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  barWrapper: {
+
+  /* ── Shared Progress Bar ── */
+  progressRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
-  barBg: {
+  progressBg: {
     flex: 1,
-    height: 8,
-    borderRadius: 4,
+    height: 10,
+    borderRadius: 5,
     overflow: 'hidden',
   },
-  barFill: {
+  progressFill: {
     height: '100%',
+    borderRadius: 5,
+  },
+  progressPct: {
+    fontSize: 12,
+    fontWeight: '600',
+    minWidth: 50,
+    textAlign: 'right',
+  },
+
+  /* ── Category Breakdown ── */
+  catList: {
+    gap: 14,
+  },
+  catRow: {
+    gap: 6,
+  },
+  catInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  catDot: {
+    width: 8,
+    height: 8,
     borderRadius: 4,
   },
-  percentageText: {
-    fontSize: 11,
+  catName: {
+    fontSize: 14,
     fontWeight: '600',
-    minWidth: 60,
-    textAlign: 'right',
+    flex: 1,
+  },
+  catVal: {
+    fontSize: 14,
+    fontWeight: '700',
+    flexShrink: 0,
   },
 });

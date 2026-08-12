@@ -1,5 +1,4 @@
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SymbolView } from 'expo-symbols';
 
 import { AppHeader } from '@/components/app-header';
