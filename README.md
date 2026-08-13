@@ -25,6 +25,44 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
+## Project structure
+
+- **Routing**: `src/app/` (Expo Router)
+  - `src/app/_layout.tsx` — Root navigation layout
+  - `src/app/index.tsx` — Dashboard (stats, charts, recent activities)
+  - `src/app/explore.tsx` — Products screen (search, sort, filter by category)
+  - `src/app/add.tsx` — Add / Edit product form (image picker integration)
+  - `src/app/categories.tsx` — Category list & details
+  - `src/app/profile.tsx` — User profile and preferences
+- **Components**: `src/components/` — reusable UI components. Platform-specific files (e.g. `animated-icon.web.tsx`, `app-tabs.web.tsx`) optimize UI between native apps and web.
+- **State management**: `src/contexts/inventory-context.tsx` and the `src/hooks/use-inventory.ts` hook
+- **Theme**: `src/constants/theme.ts` & `src/hooks/use-theme.ts` (supports dark / light mode)
+
+## Running on Android / iOS
+
+### Android
+- Start the emulator, then run:
+  ```bash
+  npm run android
+  ```
+- **Port conflict**: if a Metro server is already running, don't run `npm run android` again — send `a` to the running Metro task to open the app on the emulator instead.
+- **Loopback issue**: if Expo Go can't reach the host inside the emulator, force the loopback URL:
+  ```bash
+  adb shell am start -a android.intent.action.VIEW -d exp://10.0.2.2:8081
+  ```
+
+### iOS
+- Open the Simulator, then run:
+  ```bash
+  npm run ios
+  ```
+- **Port conflict**: if Metro is already running, don't run `npm run ios` again — send `i` to the Metro console instead.
+- Or test on a physical device with **Expo Go** by opening the Metro URL (e.g. `exp://<host-ip>:8081`).
+
+## Backend
+
+This app talks to an Express + MySQL API in [server.js](server.js) (`npm run server`). Copy `.env.example` to `.env` and fill in your own DB credentials and `EXPO_PUBLIC_API_KEY` — `.env` itself is gitignored and not included in this repo.
+
 ## Get a fresh project
 
 When you're ready, run:
