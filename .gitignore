@@ -38,6 +38,10 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# agent instructions (kept locally, not published)
+AGENTS.md
+CLAUDE.md
+
 example
 
 # generated native folders
