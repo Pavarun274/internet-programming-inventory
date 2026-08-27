@@ -72,6 +72,11 @@ export const fetchProductsFromApi = async (authToken?: string) => {
     // otherwise come back `undefined` even though Product requires them.
     minQuantity: Number(product.minQuantity) || 0,
     supplier: product.supplier ?? '',
+    // The table tracks this as `updated_at`, not `lastUpdated` — map it so the
+    // "Last updated" display has something to show for backend-sourced products.
+    lastUpdated: product.updated_at
+      ? String(product.updated_at).split('T')[0]
+      : (product.lastUpdated ?? ''),
     description: product.description ?? '',
     storeIds: product.storeIds ?? ['s1'],
     category: product.category ?? '',
@@ -100,6 +105,7 @@ export type ProductApiPayload = {
   quantity: number;
   status?: string;
   image?: string | null;
+  supplier?: string | null;
 };
 
 // Shared secret embedded at build time — lets the server tell our own app's
@@ -138,3 +144,37 @@ export const deleteProductOnApi = async (id: string): Promise<void> => {
     headers: API_KEY_HEADERS,
   });
 };
+
+export type AuthUser = {
+  user_id: number;
+  username: string;
+  email: string;
+  role: string;
+};
+
+export type AuthResponse = {
+  token: string;
+  user: AuthUser;
+};
+
+// Bypasses apiCall's fallback logic — auth errors need the server's actual
+// message (e.g. "Invalid username or password") surfaced to the user, not
+// swallowed by a generic "HTTP Error: 401" from a retry chain.
+async function authRequest(path: string, payload: object): Promise<AuthResponse> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...API_KEY_HEADERS },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error || `Request failed with status ${response.status}`);
+  }
+  return data;
+}
+
+export const loginOnApi = (username: string, password: string): Promise<AuthResponse> =>
+  authRequest('/auth/login', { username, password });
+
+export const registerOnApi = (username: string, email: string, password: string): Promise<AuthResponse> =>
+  authRequest('/auth/register', { username, email, password });

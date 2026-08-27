@@ -101,38 +101,48 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     return categoryIdMapRef.current[categorySlug] ?? null;
   }, []);
 
-  useEffect(() => {
-    async function loadCategoryIds() {
-      try {
-        const backendCategories = await fetchCategoriesFromApi();
-        const map: Record<string, number> = {};
-        for (const localCat of CATEGORIES) {
-          if (localCat.id === 'all') continue;
-          const match = backendCategories.find((bc: any) => {
-            const bcName = String(bc.name ?? bc.category_name ?? bc.title ?? '').toLowerCase().replace(/[^a-z]/g, '');
-            const localName = localCat.name.toLowerCase().replace(/[^a-z]/g, '');
-            return bcName === localName || bcName.startsWith(localCat.id);
-          });
-          if (match) {
-            map[localCat.id] = match.id ?? match.category_id;
-          }
+  // Best-effort backend category_id -> local slug lookup (reverse of
+  // categoryIdMapRef), used to label products fetched from the backend.
+  const categorySlugByIdRef = useRef<Record<number, string>>({});
+
+  async function loadCategoryMaps() {
+    try {
+      const backendCategories = await fetchCategoriesFromApi();
+      const slugToId: Record<string, number> = {};
+      const idToSlug: Record<number, string> = {};
+      for (const localCat of CATEGORIES) {
+        if (localCat.id === 'all') continue;
+        const match = backendCategories.find((bc: any) => {
+          const bcName = String(bc.name ?? bc.category_name ?? bc.title ?? '').toLowerCase().replace(/[^a-z]/g, '');
+          const localName = localCat.name.toLowerCase().replace(/[^a-z]/g, '');
+          return bcName === localName || bcName.startsWith(localCat.id);
+        });
+        if (match) {
+          const backendId = match.id ?? match.category_id;
+          slugToId[localCat.id] = backendId;
+          idToSlug[backendId] = localCat.id;
         }
-        categoryIdMapRef.current = map;
-      } catch (e) {
-        console.warn('Could not resolve backend category ids, product sync will use null category_id:', e);
       }
+      categoryIdMapRef.current = slugToId;
+      categorySlugByIdRef.current = idToSlug;
+    } catch (e) {
+      console.warn('Could not resolve backend category ids:', e);
     }
-    loadCategoryIds();
-  }, []);
+  }
 
   // Load from Backend API / GitHub / AsyncStorage on mount
   useEffect(() => {
     async function loadStoredData() {
       try {
         // 1. Try fetching from Backend API Server using fetchProductsFromApi
+        await loadCategoryMaps();
         const data = await fetchProductsFromApi();
         if (Array.isArray(data) && data.length > 0) {
-          const migrated = mergeLocalImages(migrateProducts(data));
+          const withCategorySlugs = data.map((p: any) => ({
+            ...p,
+            category: categorySlugByIdRef.current[p.category_id] ?? p.category ?? '',
+          }));
+          const migrated = mergeLocalImages(migrateProducts(withCategorySlugs));
           setProducts(migrated);
           await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
           // These products' `id` already IS the backend row id (see
@@ -240,6 +250,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       quantity: newFields.quantity,
       status: 'active',
       image: toRemoteImageUrl(newFields.image),
+      supplier: newFields.supplier || null,
     })
       .then((backendId) => {
         backendProductIdMapRef.current[localId] = backendId;
@@ -307,6 +318,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
         quantity: merged.quantity,
         status: 'active',
         image: toRemoteImageUrl(merged.image),
+        supplier: merged.supplier || null,
       }).catch((e) => console.warn('Could not sync product update to backend:', e));
     }
   }, [logActivity, resolveCategoryId]);

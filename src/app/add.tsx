@@ -13,6 +13,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { CategoryChip } from '@/components/category-chip';
 import { useInventory } from '@/hooks/use-inventory';
+import { useAuth } from '@/hooks/use-auth';
 
 type FormField = {
   name: string;
@@ -46,9 +47,12 @@ export default function AddProductScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const isEditMode = !!id;
   const { addProduct, updateProduct, deleteProduct, getProductById } = useInventory();
+  const { user } = useAuth();
+  const canManage = user?.role !== 'user';
 
   const isDark = scheme === 'dark';
   const [form, setForm] = useState<FormField>(INITIAL_FORM);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [deleted, setDeleted] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -98,6 +102,7 @@ export default function AddProductScreen() {
               description: product.description || '',
               image: product.image || '',
             });
+            setLastUpdated(product.lastUpdated || null);
           }
         }, 0);
       }
@@ -105,6 +110,7 @@ export default function AddProductScreen() {
       setTimeout(() => {
         if (isMounted) {
           setForm(INITIAL_FORM);
+          setLastUpdated(null);
         }
       }, 0);
     }
@@ -137,7 +143,14 @@ export default function AddProductScreen() {
     setForm((prev) => ({ ...prev, image: '' }));
   }
 
+  function formatLastUpdated(value: string) {
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return value;
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+
   function executeSave() {
+    if (!canManage) return;
     const parsedStoreQuantities: Record<string, number> = {};
     form.storeIds.forEach((sId) => {
       const qtyNum = parseInt(form.storeQuantities[sId] || '0', 10);
@@ -166,6 +179,7 @@ export default function AddProductScreen() {
       addProduct(parsedProduct);
     }
 
+    setLastUpdated(new Date().toISOString().split('T')[0]);
     setSaved(true);
     setTimeout(() => {
       setSaved(false);
@@ -174,10 +188,12 @@ export default function AddProductScreen() {
   }
 
   function handleSave() {
+    if (!canManage) return;
     setShowConfirmModal(true);
   }
 
   function handleDelete() {
+    if (!canManage) return;
     if (isEditMode && id) {
       deleteProduct(id);
       setDeleted(true);
@@ -212,13 +228,31 @@ export default function AddProductScreen() {
 
             {/* Header */}
             <View style={styles.header}>
-              <ThemedText style={[styles.title, { color: theme.text }]}>
-                {isEditMode ? 'Edit Product' : 'Add Product'}
-              </ThemedText>
+              <View style={styles.headerTitleRow}>
+                <ThemedText style={[styles.title, { color: theme.text }]}>
+                  {isEditMode ? 'Edit Product' : 'Add Product'}
+                </ThemedText>
+                {isEditMode && lastUpdated ? (
+                  <View style={[styles.lastUpdatedPill, { backgroundColor: theme.backgroundSelected }]}>
+                    <ThemedText style={[styles.lastUpdatedText, { color: theme.textSecondary }]}>
+                      Last updated: {formatLastUpdated(lastUpdated)}
+                    </ThemedText>
+                  </View>
+                ) : null}
+              </View>
               <ThemedText style={[styles.subtitle, { color: theme.textSecondary }]}>
                 {isEditMode ? 'Modify product parameters or delete it' : 'Fill in the details below'}
               </ThemedText>
             </View>
+
+            {/* View-only Notice */}
+            {!canManage && (
+              <View style={[styles.successBanner, { backgroundColor: SemanticColors.warningLight }]}>
+                <ThemedText style={[styles.successText, { color: SemanticColors.warning }]}>
+                  Your account has view-only access. Contact an admin to add, edit, or delete products.
+                </ThemedText>
+              </View>
+            )}
 
             {/* Success Banner */}
             {saved && (
@@ -237,6 +271,8 @@ export default function AddProductScreen() {
                 </ThemedText>
               </View>
             )}
+
+            <View pointerEvents={canManage ? 'auto' : 'none'} style={[styles.formSections, !canManage && styles.formSectionsDisabled]}>
 
             {/* Image Selector Card */}
             <View
@@ -581,30 +617,34 @@ export default function AddProductScreen() {
               />
             </View>
 
+            </View>
+
             {/* Save Button */}
-            <Pressable
-              onPress={handleSave}
-              disabled={!isFormValid}
-              style={({ pressed }) => [
-                styles.saveButton,
-                {
-                  backgroundColor: isFormValid ? SemanticColors.primary : theme.backgroundSelected,
-                  opacity: pressed ? 0.8 : 1,
-                },
-              ]}
-            >
-              <ThemedText
-                style={[
-                  styles.saveButtonText,
-                  { color: isFormValid ? '#fff' : theme.textSecondary },
+            {canManage && (
+              <Pressable
+                onPress={handleSave}
+                disabled={!isFormValid}
+                style={({ pressed }) => [
+                  styles.saveButton,
+                  {
+                    backgroundColor: isFormValid ? SemanticColors.primary : theme.backgroundSelected,
+                    opacity: pressed ? 0.8 : 1,
+                  },
                 ]}
               >
-                {isEditMode ? 'Save Changes' : 'Add Product'}
-              </ThemedText>
-            </Pressable>
+                <ThemedText
+                  style={[
+                    styles.saveButtonText,
+                    { color: isFormValid ? '#fff' : theme.textSecondary },
+                  ]}
+                >
+                  {isEditMode ? 'Save Changes' : 'Add Product'}
+                </ThemedText>
+              </Pressable>
+            )}
 
             {/* Delete Button */}
-            {isEditMode && (
+            {canManage && isEditMode && (
               <Pressable
                 onPress={handleDelete}
                 style={({ pressed }) => [
@@ -808,6 +848,28 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: 4,
+  },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  lastUpdatedPill: {
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  lastUpdatedText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  formSections: {
+    gap: Spacing.three,
+  },
+  formSectionsDisabled: {
+    opacity: 0.5,
   },
   title: {
     fontSize: 28,

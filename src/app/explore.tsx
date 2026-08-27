@@ -15,6 +15,7 @@ import { SortOption } from '@/contexts/inventory-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useInventory } from '@/hooks/use-inventory';
 import { useTheme } from '@/hooks/use-theme';
+import { useAuth } from '@/hooks/use-auth';
 
 const SORT_OPTIONS: { id: SortOption; label: string }[] = [
   { id: 'default', label: 'Default' },
@@ -37,6 +38,8 @@ export default function ProductsScreen() {
     sortOption,
     setSortOption,
   } = useInventory();
+  const { user } = useAuth();
+  const canManageProducts = user?.role !== 'user';
 
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
@@ -108,21 +111,23 @@ export default function ProductsScreen() {
                 </Pressable>
 
                 {/* Add Product Button */}
-                <Pressable
-                  onPress={() => router.push('/add' as any)}
-                  style={({ pressed }) => [
-                    styles.addProductBtnRow,
-                    { backgroundColor: SemanticColors.primary, opacity: pressed ? 0.8 : 1 }
-                  ]}
-                >
-                  <SymbolView
-                    name={{ ios: 'plus', android: 'add', web: 'add' }}
-                    size={14}
-                    tintColor="#fff"
-                    weight="bold"
-                  />
-                  <ThemedText style={styles.addProductBtnText}>Add Product</ThemedText>
-                </Pressable>
+                {canManageProducts && (
+                  <Pressable
+                    onPress={() => router.push('/add' as any)}
+                    style={({ pressed }) => [
+                      styles.addProductBtnRow,
+                      { backgroundColor: SemanticColors.primary, opacity: pressed ? 0.8 : 1 }
+                    ]}
+                  >
+                    <SymbolView
+                      name={{ ios: 'plus', android: 'add', web: 'add' }}
+                      size={14}
+                      tintColor="#fff"
+                      weight="bold"
+                    />
+                    <ThemedText style={styles.addProductBtnText}>Add Product</ThemedText>
+                  </Pressable>
+                )}
 
                 {/* Filter Button */}
                 <Pressable

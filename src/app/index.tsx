@@ -379,10 +379,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.2,
     textAlign: 'center',
-    position: 'absolute',
-    bottom: 0,
-    left: -20,
-    right: -20,
   },
   gridLines: {
     position: 'absolute',

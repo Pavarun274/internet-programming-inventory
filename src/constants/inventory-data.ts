@@ -128,9 +128,15 @@ export const RECENT_ACTIVITY: RecentActivity[] = [
   },
 ];
 
+// Fallback threshold for products with no minQuantity of their own — the
+// backend's products table has no such column, so everything loaded from the
+// API arrives with minQuantity 0 and would never register as low stock.
+export const DEFAULT_MIN_QUANTITY = 5;
+
 export function getStockStatus(product: Product): StockStatus {
   if (product.quantity === 0) return 'out_of_stock';
-  if (product.quantity < product.minQuantity) return 'low_stock';
+  const threshold = product.minQuantity > 0 ? product.minQuantity : DEFAULT_MIN_QUANTITY;
+  if (product.quantity < threshold) return 'low_stock';
   return 'in_stock';
 }
 

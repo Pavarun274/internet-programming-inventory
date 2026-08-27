@@ -9,6 +9,7 @@ import { getStockStatus } from '@/constants/inventory-data';
 import { useTheme } from '@/hooks/use-theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useInventory } from '@/hooks/use-inventory';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function ProfileScreen() {
   const theme = useTheme();
@@ -19,6 +20,7 @@ export default function ProfileScreen() {
   const [lowStockAlerts, setLowStockAlerts] = useState(true);
   const [darkModeForced, setDarkModeForced] = useState(false);
 
+  const { user, logout } = useAuth();
   const { products } = useInventory();
   const TOTAL_PRODUCTS = products.length;
   const IN_STOCK = products.filter((p) => getStockStatus(p) === 'in_stock').length;
@@ -57,13 +59,15 @@ export default function ProfileScreen() {
             {/* User Card */}
             <View style={[styles.userCard, { backgroundColor: SemanticColors.primary }]}>
               <View style={styles.avatarLarge}>
-                <ThemedText style={styles.avatarLargeText}>A</ThemedText>
+                <ThemedText style={styles.avatarLargeText}>
+                  {(user?.username?.charAt(0) ?? '?').toUpperCase()}
+                </ThemedText>
               </View>
               <View style={styles.userInfo}>
-                <ThemedText style={styles.userName}>Admin User</ThemedText>
-                <ThemedText style={styles.userEmail}>admin@inventory.app</ThemedText>
+                <ThemedText style={styles.userName}>{user?.username ?? 'Unknown'}</ThemedText>
+                <ThemedText style={styles.userEmail}>{user?.email ?? ''}</ThemedText>
                 <View style={styles.roleBadge}>
-                  <ThemedText style={styles.roleText}>Administrator</ThemedText>
+                  <ThemedText style={styles.roleText}>{(user?.role ?? '').toUpperCase()}</ThemedText>
                 </View>
               </View>
             </View>
@@ -145,6 +149,7 @@ export default function ProfileScreen() {
 
             {/* Sign Out */}
             <Pressable
+              onPress={() => logout()}
               style={({ pressed }) => [
                 styles.signOutButton,
                 {

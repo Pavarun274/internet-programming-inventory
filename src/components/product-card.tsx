@@ -5,7 +5,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { ThemedText } from './themed-text';
 import { StockBadge } from './stock-badge';
-import { Product, getStockStatus, STORES } from '@/constants/inventory-data';
+import { Product, getStockStatus, STORES, CATEGORIES } from '@/constants/inventory-data';
 
 type ProductCardProps = {
   product: Product;
@@ -27,14 +27,13 @@ export function ProductCard({ product, onPress }: ProductCardProps) {
   const cardBg = isDark ? SemanticColors.cardDark : SemanticColors.card;
   const status = getStockStatus(product);
 
-  const storeNames = STORES.filter((s) => product.storeIds && product.storeIds.includes(s.id))
+  const storeLines = STORES.filter((s) => product.storeIds && product.storeIds.includes(s.id))
     .map((s) => {
       const shortName = s.name.split(' - ')[0];
       const qty = product.storeQuantities ? product.storeQuantities[s.id] : undefined;
       return qty !== undefined ? `${shortName} (${qty})` : shortName;
-    })
-    .join(', ');
-  const displayStores = storeNames || 'No Store';
+    });
+  const displayStoreLines = storeLines.length > 0 ? storeLines : ['No Store'];
 
   const getCategoryStyles = (category: string) => {
     switch (category) {
@@ -67,6 +66,7 @@ export function ProductCard({ product, onPress }: ProductCardProps) {
   };
 
   const catStyle = getCategoryStyles(product.category);
+  const categoryLabel = CATEGORIES.find((c) => c.id === product.category)?.name ?? product.category;
 
 
   return (
@@ -102,15 +102,34 @@ export function ProductCard({ product, onPress }: ProductCardProps) {
         <ThemedText style={[styles.sku, { color: theme.textSecondary }]}>
           {product.sku}
         </ThemedText>
+        <View style={styles.metaRow}>
+          {categoryLabel ? (
+            <View style={[styles.categoryChip, { backgroundColor: catStyle.bg }]}>
+              <ThemedText style={[styles.categoryChipText, { color: catStyle.color }]} numberOfLines={1}>
+                {categoryLabel}
+              </ThemedText>
+            </View>
+          ) : null}
+          {product.supplier ? (
+            <ThemedText style={[styles.brandText, { color: theme.textSecondary }]} numberOfLines={1}>
+              {product.supplier}
+            </ThemedText>
+          ) : null}
+        </View>
         <View style={styles.storeRow}>
           <SymbolView
             name={{ ios: 'mappin.and.ellipse', android: 'place', web: 'place' }}
             size={12}
             tintColor={theme.textSecondary}
+            style={styles.storeIcon}
           />
-          <ThemedText style={[styles.storeText, { color: theme.textSecondary }]} numberOfLines={1}>
-            {displayStores}
-          </ThemedText>
+          <View style={styles.storeList}>
+            {displayStoreLines.map((line, index) => (
+              <ThemedText key={index} style={[styles.storeText, { color: theme.textSecondary }]}>
+                {line}
+              </ThemedText>
+            ))}
+          </View>
         </View>
         <View style={styles.footer}>
           <ThemedText style={[styles.price, { color: SemanticColors.primary }]}>
@@ -203,14 +222,43 @@ const styles = StyleSheet.create({
     height: '100%',
     resizeMode: 'cover',
   },
-  storeRow: {
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+    marginTop: 3,
+  },
+  categoryChip: {
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    flexShrink: 1,
+  },
+  categoryChipText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  brandText: {
+    fontSize: 11,
+    fontWeight: '500',
+    flexShrink: 1,
+  },
+  storeRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     gap: 4,
     marginTop: 2,
+  },
+  storeIcon: {
+    marginTop: 2,
+  },
+  storeList: {
+    flex: 1,
+    gap: 1,
   },
   storeText: {
     fontSize: 11,
     fontWeight: '500',
+    lineHeight: 15,
   },
 });
