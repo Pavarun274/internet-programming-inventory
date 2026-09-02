@@ -106,6 +106,24 @@ export default function AppTabs() {
         }}
       />
       <Tabs.Screen
+        name="store-detail"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="product-detail"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="category-detail"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
         name="finances"
         options={{
           href: null,

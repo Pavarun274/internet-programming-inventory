@@ -12,6 +12,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useInventory } from '@/hooks/use-inventory';
 import { CategoryChip } from '@/components/category-chip';
 
+import { useAuth } from '@/hooks/use-auth';
+
 // Monthly Sales Data per Store
 type MonthlyStorePoint = {
   month: string;
@@ -90,6 +92,7 @@ export default function FinancesScreen() {
   const borderColor = isDark ? '#27272A' : '#E4E4E7';
   const dividerColor = isDark ? '#27272A' : '#F4F4F5';
 
+  const { hasFinancialAccess } = useAuth();
   const { products } = useInventory();
   const paddingBottom = Platform.select({ ios: 90, android: 100, web: 24, default: 24 });
 
@@ -98,15 +101,43 @@ export default function FinancesScreen() {
   const [selectedMonthIdx, setSelectedMonthIdx] = useState(MONTHLY_SALES_BY_STORE.length - 1);
   const [selectedDailyStoreFilter, setSelectedDailyStoreFilter] = useState('all');
 
+  if (!hasFinancialAccess) {
+    return (
+      <ThemedView style={styles.flex}>
+        <AppHeader title="Finances" />
+        <View style={styles.restrictedContainer}>
+          <View
+            style={[
+              styles.restrictedIconBox,
+              { backgroundColor: isDark ? SemanticColors.dangerDark : SemanticColors.dangerLight },
+            ]}
+          >
+            <SymbolView
+              name={{ ios: 'lock.fill', android: 'lock', web: 'lock' }}
+              size={36}
+              tintColor={SemanticColors.danger}
+            />
+          </View>
+          <ThemedText style={[styles.restrictedTitle, { color: theme.text }]}>
+            Access Restricted
+          </ThemedText>
+          <ThemedText style={[styles.restrictedMessage, { color: theme.textSecondary }]}>
+            Your account role (&quot;user&quot;) does not have permission to view financial metrics, revenue data, or pricing analytics. Please contact an administrator for elevated access.
+          </ThemedText>
+        </View>
+      </ThemedView>
+    );
+  }
+
   // Total Calculations
-  const totalValue = products.reduce((sum, p) => sum + p.price * p.quantity, 0);
+  const totalValue = products.reduce((sum, p) => sum + (p.price ?? 0) * p.quantity, 0);
   const estimatedCost = totalValue * 0.65;
   const potentialProfit = totalValue - estimatedCost;
 
   // Category breakdown
   const categoryFinances = CATEGORIES.filter((c) => c.id !== 'all').map((cat) => {
     const catProducts = products.filter((p) => p.category === cat.id);
-    const value = catProducts.reduce((sum, p) => sum + p.price * p.quantity, 0);
+    const value = catProducts.reduce((sum, p) => sum + (p.price ?? 0) * p.quantity, 0);
     const percentage = totalValue > 0 ? (value / totalValue) * 100 : 0;
     return { ...cat, value, percentage };
   });
@@ -118,7 +149,7 @@ export default function FinancesScreen() {
     products.forEach((p) => {
       const q = p.storeQuantities?.[store.id] ?? (p.storeIds?.includes(store.id) ? p.quantity : 0);
       storeUnits += q;
-      storeValue += q * p.price;
+      storeValue += q * (p.price ?? 0);
     });
     const percentage = totalValue > 0 ? (storeValue / totalValue) * 100 : 0;
     return { ...store, storeValue, storeUnits, percentage, color: STORE_COLORS[store.id] || SemanticColors.primary };
@@ -862,5 +893,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     flexShrink: 0,
+  },
+  /* ── Restricted View ── */
+  restrictedContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    gap: 16,
+  },
+  restrictedIconBox: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  restrictedTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  restrictedMessage: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    maxWidth: 320,
   },
 });

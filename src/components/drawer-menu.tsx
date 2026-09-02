@@ -4,25 +4,27 @@ import { router } from 'expo-router';
 import { useMenu } from '@/contexts/menu-context';
 import { ThemedText } from './themed-text';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { SemanticColors } from '@/constants/theme';
+import { useAuth } from '@/hooks/use-auth';
 
-const MENU_ITEMS = [
+const ALL_MENU_ITEMS = [
   { label: 'Home', route: '/' },
   { label: 'Products', route: '/explore' },
   { label: 'Categories', route: '/categories' },
   { label: 'Stores', route: '/stores' },
-  { label: 'Finances', route: '/finances' },
+  { label: 'Finances', route: '/finances', isFinancial: true },
   { label: 'Settings', route: '/settings' },
 ];
 
 export function DrawerMenu() {
   const { isOpen, closeMenu } = useMenu();
+  const { hasFinancialAccess } = useAuth();
   const insets = useSafeAreaInsets();
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
   // Always dark bg for strong contrast — minimal & elegant in both modes
   const menuBg = isDark ? '#09090B' : '#18181B';
-  const borderColor = isDark ? '#27272A' : '#27272A';
+
+  const menuItems = ALL_MENU_ITEMS.filter((item) => !item.isFinancial || hasFinancialAccess);
 
   function navigate(route: string) {
     closeMenu();
@@ -61,7 +63,7 @@ export function DrawerMenu() {
 
         {/* Menu Items */}
         <View style={styles.menuList}>
-          {MENU_ITEMS.map((item) => (
+          {menuItems.map((item) => (
             <Pressable
               key={item.label}
               onPress={() => navigate(item.route)}

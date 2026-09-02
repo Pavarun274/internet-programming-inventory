@@ -9,6 +9,7 @@ import { getStockStatus } from '@/constants/inventory-data';
 import { useTheme } from '@/hooks/use-theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useInventory } from '@/hooks/use-inventory';
+import { useAuth } from '@/hooks/use-auth';
 
 const CHART_DATA = [
   { label: 'Confirmed', value: 0.72, color: '#6366F1' }, // Indigo-500
@@ -43,8 +44,9 @@ export default function DashboardScreen() {
   const cardBg = isDark ? SemanticColors.cardDark : SemanticColors.card;
   const shadowColor = isDark ? '#000' : '#E4E4E7';
 
+  const { user, hasFinancialAccess } = useAuth();
+  const isUserRole = user?.role === 'user';
   const { products, recentActivities } = useInventory();
-  const TOTAL_PRODUCTS = products.length;
   const NEW_ORDERS = 123;
   const REFUNDS = 12;
   const MESSAGES = 1;
@@ -57,13 +59,17 @@ export default function DashboardScreen() {
     <ThemedView style={styles.flex}>
       <AppHeader title="Inventory" />
 
-      <ScrollView
-        style={styles.flex}
-        contentContainerStyle={[styles.scroll, { paddingBottom }]}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.centered}>
-          <View style={[styles.content, { maxWidth: MaxContentWidth }]}>
+      <View style={styles.bodyWrapper}>
+        <ScrollView
+          style={[styles.flex, isUserRole && (styles.blurredContent as any)]}
+          contentContainerStyle={[styles.scroll, { paddingBottom }]}
+          showsVerticalScrollIndicator={false}
+          pointerEvents={isUserRole ? 'none' : 'auto'}
+          aria-hidden={isUserRole ? true : undefined}
+          tabIndex={isUserRole ? -1 : undefined}
+        >
+          <View style={styles.centered}>
+            <View style={[styles.content, { maxWidth: MaxContentWidth }]}>
 
             {/* ─── Recent Activity ─── */}
             <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
@@ -125,50 +131,54 @@ export default function DashboardScreen() {
               </View>
             </View>
 
-            {/* ─── Sales Chart ─── */}
-            <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
-              Sales
-            </ThemedText>
+            {/* ─── Sales Chart (Financial access only) ─── */}
+            {hasFinancialAccess && (
+              <>
+                <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
+                  Sales
+                </ThemedText>
 
-            <View
-              style={[
-                styles.chartCard,
-                { backgroundColor: cardBg, shadowColor },
-              ]}
-            >
-              {/* Bars */}
-              <View style={styles.barsWrapper}>
-                {CHART_DATA.map((item) => (
-                  <View key={item.label} style={styles.barCol}>
-                    <View style={styles.barTrack}>
-                      <View
-                        style={[
-                          styles.bar,
-                          {
-                            height: `${item.value * 100}%` as any,
-                            backgroundColor: item.color,
-                            opacity: item.value >= 0.7 ? 1 : 0.6,
-                          },
-                        ]}
-                      />
-                    </View>
-                    <ThemedText style={[styles.barLabel, { color: theme.textSecondary }]}>
-                      {item.label}
-                    </ThemedText>
+                <View
+                  style={[
+                    styles.chartCard,
+                    { backgroundColor: cardBg, shadowColor },
+                  ]}
+                >
+                  {/* Bars */}
+                  <View style={styles.barsWrapper}>
+                    {CHART_DATA.map((item) => (
+                      <View key={item.label} style={styles.barCol}>
+                        <View style={styles.barTrack}>
+                          <View
+                            style={[
+                              styles.bar,
+                              {
+                                height: `${item.value * 100}%` as any,
+                                backgroundColor: item.color,
+                                opacity: item.value >= 0.7 ? 1 : 0.6,
+                              },
+                            ]}
+                          />
+                        </View>
+                        <ThemedText style={[styles.barLabel, { color: theme.textSecondary }]}>
+                          {item.label}
+                        </ThemedText>
+                      </View>
+                    ))}
                   </View>
-                ))}
-              </View>
 
-              {/* Y-axis hint lines */}
-              <View style={styles.gridLines} pointerEvents="none">
-                {[0, 1, 2, 3].map((i) => (
-                  <View
-                    key={i}
-                    style={[styles.gridLine, { borderColor: isDark ? '#27272A' : '#E4E4E7' }]}
-                  />
-                ))}
-              </View>
-            </View>
+                  {/* Y-axis hint lines */}
+                  <View style={styles.gridLines} pointerEvents="none">
+                    {[0, 1, 2, 3].map((i) => (
+                      <View
+                        key={i}
+                        style={[styles.gridLine, { borderColor: isDark ? '#27272A' : '#E4E4E7' }]}
+                      />
+                    ))}
+                  </View>
+                </View>
+              </>
+            )}
 
             {/* ─── Recent Transactions ─── */}
             <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
@@ -239,8 +249,42 @@ export default function DashboardScreen() {
           </View>
         </View>
       </ScrollView>
-    </ThemedView>
-  );
+
+      {isUserRole && (
+        <View style={styles.blurOverlay} pointerEvents="auto">
+          <View
+            style={[
+              styles.lockedBadge,
+              {
+                backgroundColor: isDark ? SemanticColors.cardDark : SemanticColors.card,
+                borderColor: isDark ? '#27272A' : '#E4E4E7',
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.lockedIconBox,
+                { backgroundColor: isDark ? SemanticColors.primaryDark : SemanticColors.primaryLight },
+              ]}
+            >
+              <SymbolView
+                name={{ ios: 'lock.fill', android: 'lock', web: 'lock' }}
+                size={24}
+                tintColor={SemanticColors.primary}
+              />
+            </View>
+            <ThemedText style={[styles.lockedTitle, { color: theme.text }]}>
+              Dashboard Restricted
+            </ThemedText>
+            <ThemedText style={[styles.lockedSubtitle, { color: theme.textSecondary }]}>
+              Your role (&quot;user&quot;) does not have access to view dashboard metrics.
+            </ThemedText>
+          </View>
+        </View>
+      )}
+    </View>
+  </ThemedView>
+);
 }
 
 type ActivityCardProps = {
@@ -424,4 +468,65 @@ const styles = StyleSheet.create({
   txQty: { fontSize: 14, fontWeight: '700' },
   txTime: { fontSize: 11, fontWeight: '500' },
   divider: { height: 1, marginHorizontal: 12 },
+
+  // Blur & Access Gate
+  bodyWrapper: {
+    flex: 1,
+    position: 'relative',
+  },
+  blurredContent: {
+    ...(Platform.OS === 'web'
+      ? ({
+          filter: 'blur(8px)',
+          WebkitFilter: 'blur(8px)',
+          userSelect: 'none',
+          pointerEvents: 'none',
+        } as any)
+      : {
+          opacity: 0.25,
+        }),
+  },
+  blurOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    zIndex: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.12)',
+  },
+  lockedBadge: {
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    gap: 10,
+    maxWidth: 320,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  lockedIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lockedTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  lockedSubtitle: {
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
 });

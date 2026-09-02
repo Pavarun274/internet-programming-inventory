@@ -1,4 +1,4 @@
-import { Platform, Pressable, ScrollView, StyleSheet, TextInput, View, Image, Modal } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, TextInput, View, Image, Modal, ActivityIndicator } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -8,12 +8,13 @@ import { AppHeader } from '@/components/app-header';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, SemanticColors, Spacing } from '@/constants/theme';
-import { CATEGORIES, STORES } from '@/constants/inventory-data';
+import { CATEGORIES } from '@/constants/inventory-data';
 import { useTheme } from '@/hooks/use-theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { CategoryChip } from '@/components/category-chip';
 import { useInventory } from '@/hooks/use-inventory';
 import { useAuth } from '@/hooks/use-auth';
+import { uploadImageOnApi } from '@/services/api';
 
 type FormField = {
   name: string;
@@ -32,8 +33,8 @@ const INITIAL_FORM: FormField = {
   name: '',
   sku: '',
   category: 'electronics',
-  storeIds: ['s1'],
-  storeQuantities: { s1: '0' },
+  storeIds: [],
+  storeQuantities: {},
   minQuantity: '',
   price: '',
   supplier: '',
@@ -46,8 +47,8 @@ export default function AddProductScreen() {
   const scheme = useColorScheme();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const isEditMode = !!id;
-  const { addProduct, updateProduct, deleteProduct, getProductById } = useInventory();
-  const { user } = useAuth();
+  const { addProduct, updateProduct, deleteProduct, getProductById, stores } = useInventory();
+  const { user, hasFinancialAccess } = useAuth();
   const canManage = user?.role !== 'user';
 
   const isDark = scheme === 'dark';
@@ -56,15 +57,18 @@ export default function AddProductScreen() {
   const [saved, setSaved] = useState(false);
   const [deleted, setDeleted] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
-  const selectedStoreNames = STORES.filter((s) => form.storeIds && form.storeIds.includes(s.id))
+  const selectedStoreNames = stores.filter((s) => form.storeIds && form.storeIds.includes(s.id))
     .map((s) => s.name.split(' - ')[0])
     .join(', ');
 
-  const totalCalculatedQuantity = (form.storeIds || []).reduce((sum, sId) => {
-    const val = parseInt(form.storeQuantities?.[sId] || '0', 10);
-    return sum + (isNaN(val) ? 0 : val);
-  }, 0);
+  const totalCalculatedQuantity = (form.storeIds || [])
+    .filter((sId) => stores.some((s) => s.id === sId))
+    .reduce((sum, sId) => {
+      const val = parseInt(form.storeQuantities?.[sId] || '0', 10);
+      return sum + (isNaN(val) ? 0 : val);
+    }, 0);
 
   const paddingBottom = Platform.select({ ios: 90, android: 100, web: 24, default: 24 });
 
@@ -97,7 +101,7 @@ export default function AddProductScreen() {
               storeIds: product.storeIds || ['s1'],
               storeQuantities: storeQtys,
               minQuantity: product.minQuantity.toString(),
-              price: product.price.toString(),
+              price: product.price != null ? product.price.toString() : '',
               supplier: product.supplier || '',
               description: product.description || '',
               image: product.image || '',
@@ -135,7 +139,21 @@ export default function AddProductScreen() {
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      setForm((prev) => ({ ...prev, image: result.assets[0].uri }));
+      const localUri = result.assets[0].uri;
+      // Show the local preview immediately, then swap it for the uploaded
+      // http(s) URL once ready — only a remote URL is meaningful to store on
+      // the backend, since a device-local file:// URI resolves nowhere else.
+      setForm((prev) => ({ ...prev, image: localUri }));
+      setIsUploadingImage(true);
+      try {
+        const remoteUrl = await uploadImageOnApi(localUri);
+        setForm((prev) => (prev.image === localUri ? { ...prev, image: remoteUrl } : prev));
+      } catch (e) {
+        console.warn('Could not upload image:', e);
+        alert('Could not upload image. Please try again or paste an image URL instead.');
+      } finally {
+        setIsUploadingImage(false);
+      }
     }
   }
 
@@ -151,8 +169,12 @@ export default function AddProductScreen() {
 
   function executeSave() {
     if (!canManage) return;
+    // Only keep ids that match a real, currently-known store — drops stale
+    // entries left over from ids that no longer resolve to any store (e.g.
+    // a store that was removed, or legacy mock ids from older saves).
+    const validStoreIds = form.storeIds.filter((sId) => stores.some((s) => s.id === sId));
     const parsedStoreQuantities: Record<string, number> = {};
-    form.storeIds.forEach((sId) => {
+    validStoreIds.forEach((sId) => {
       const qtyNum = parseInt(form.storeQuantities[sId] || '0', 10);
       parsedStoreQuantities[sId] = isNaN(qtyNum) ? 0 : Math.max(0, qtyNum);
     });
@@ -163,7 +185,7 @@ export default function AddProductScreen() {
       name: form.name.trim(),
       sku: form.sku.trim(),
       category: form.category,
-      storeIds: form.storeIds,
+      storeIds: validStoreIds,
       storeQuantities: parsedStoreQuantities,
       quantity: calculatedTotal,
       minQuantity: parseInt(form.minQuantity, 10) || 0,
@@ -207,13 +229,17 @@ export default function AddProductScreen() {
   const isFormValid =
     form.name.trim() &&
     form.sku.trim() &&
-    form.price &&
+    (!hasFinancialAccess || form.price) &&
     form.storeIds &&
-    form.storeIds.length > 0;
+    form.storeIds.length > 0 &&
+    !isUploadingImage;
 
   return (
     <ThemedView style={styles.flex}>
-      <AppHeader title={isEditMode ? 'Edit Product' : 'Add Product'} />
+      <AppHeader
+        title={isEditMode ? 'Edit Product' : 'Add Product'}
+        onBackPress={() => router.navigate('/explore')}
+      />
       <ScrollView
         style={styles.flex}
         contentContainerStyle={[
@@ -290,7 +316,15 @@ export default function AddProductScreen() {
 
               {form.image ? (
                 <View style={styles.imagePreviewContainer}>
-                  <Image source={{ uri: form.image }} style={styles.imagePreview} />
+                  <View style={styles.imageWrapper}>
+                    <Image source={{ uri: form.image }} style={styles.imagePreview} />
+                    {isUploadingImage && (
+                      <View style={styles.uploadingOverlay}>
+                        <ActivityIndicator color="#fff" />
+                        <ThemedText style={styles.uploadingTxt}>Uploading...</ThemedText>
+                      </View>
+                    )}
+                  </View>
                   <Pressable
                     onPress={removeImage}
                     style={({ pressed }) => [
@@ -446,7 +480,7 @@ export default function AddProductScreen() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.categoryRow}
               >
-                {STORES.map((store) => {
+                {stores.map((store) => {
                   const isSelected = form.storeIds && form.storeIds.includes(store.id);
                   return (
                     <CategoryChip
@@ -474,7 +508,7 @@ export default function AddProductScreen() {
 
               {/* Per-store quantity controls */}
               <View style={styles.storeQuantitiesContainer}>
-                {STORES.filter((store) => form.storeIds.includes(store.id)).map((store) => {
+                {stores.filter((store) => form.storeIds.includes(store.id)).map((store) => {
                   const qtyVal = form.storeQuantities[store.id] ?? '0';
                   return (
                     <View key={store.id} style={[styles.storeQtyRow, { borderColor }]}>
@@ -603,18 +637,20 @@ export default function AddProductScreen() {
                 </View>
               </View>
 
-              <LabeledInput
-                label="Price (THB) *"
-                value={form.price}
-                onChangeText={(v) => setForm({ ...form, price: v })}
-                placeholder="0.00"
-                bg={isDark ? '#252831' : '#F8F9FB'}
-                borderColor={borderColor}
-                textColor={theme.text}
-                placeholderColor={theme.textSecondary}
-                keyboardType="decimal-pad"
-                prefix="฿"
-              />
+              {hasFinancialAccess && (
+                <LabeledInput
+                  label="Price (THB) *"
+                  value={form.price}
+                  onChangeText={(v) => setForm({ ...form, price: v })}
+                  placeholder="0.00"
+                  bg={isDark ? '#252831' : '#F8F9FB'}
+                  borderColor={borderColor}
+                  textColor={theme.text}
+                  placeholderColor={theme.textSecondary}
+                  keyboardType="decimal-pad"
+                  prefix="฿"
+                />
+              )}
             </View>
 
             </View>
@@ -695,7 +731,9 @@ export default function AddProductScreen() {
               <ModalInfoRow label="Category" value={form.category.toUpperCase()} text={theme.text} labelColor={theme.textSecondary} />
               <ModalInfoRow label="Stores" value={selectedStoreNames} text={theme.text} labelColor={theme.textSecondary} />
               <ModalInfoRow label="Quantity" value={`${totalCalculatedQuantity} units`} text={theme.text} labelColor={theme.textSecondary} />
-              <ModalInfoRow label="Price" value={`฿${(parseFloat(form.price) || 0).toFixed(2)}`} text={theme.text} labelColor={theme.textSecondary} />
+              {hasFinancialAccess && (
+                <ModalInfoRow label="Price" value={`฿${(parseFloat(form.price) || 0).toFixed(2)}`} text={theme.text} labelColor={theme.textSecondary} />
+              )}
               <ModalInfoRow label="Supplier" value={form.supplier.trim() || 'N/A'} text={theme.text} labelColor={theme.textSecondary} />
             </View>
 
@@ -958,11 +996,32 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 8,
   },
-  imagePreview: {
+  imageWrapper: {
     width: 140,
     height: 140,
     borderRadius: 16,
+    overflow: 'hidden',
+  },
+  imagePreview: {
+    width: 140,
+    height: 140,
     resizeMode: 'cover',
+  },
+  uploadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  uploadingTxt: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
   removeImageBtn: {
     paddingHorizontal: 16,

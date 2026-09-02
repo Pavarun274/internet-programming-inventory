@@ -1,5 +1,4 @@
 import { Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -9,13 +8,15 @@ import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, SemanticColors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/hooks/use-auth';
 import { PRODUCTS, RECENT_ACTIVITY } from '@/constants/inventory-data';
 
 export default function SettingsScreen() {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
+  const { user, hasFinancialAccess } = useAuth();
+  const isUserRole = user?.role === 'user';
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [lowStockAlerts, setLowStockAlerts] = useState(true);
@@ -32,6 +33,10 @@ export default function SettingsScreen() {
   });
 
   const handleResetData = async () => {
+    if (isUserRole) {
+      alert('Access denied: You do not have permission to reset the database.');
+      return;
+    }
     try {
       await AsyncStorage.setItem('inventory_products', JSON.stringify(PRODUCTS));
       await AsyncStorage.setItem('inventory_activities', JSON.stringify(RECENT_ACTIVITY));
@@ -60,7 +65,9 @@ export default function SettingsScreen() {
                 Application Settings
               </ThemedText>
               <ThemedText style={[styles.subtitle, { color: theme.textSecondary }]}>
-                Configure notifications, display properties, and system database
+                {isUserRole
+                  ? 'Configure notifications and personal display preferences'
+                  : 'Configure notifications, financial parameters, and system database'}
               </ThemedText>
             </View>
 
@@ -109,32 +116,66 @@ export default function SettingsScreen() {
               />
             </View>
 
-            {/* Storage reset */}
-            <View style={[styles.card, { backgroundColor: cardBg, shadowColor }]}>
-              <ThemedText style={[styles.cardTitle, { color: theme.text }]}>
-                System Controls
-              </ThemedText>
-              <View style={styles.actionBlock}>
-                <ThemedText style={[styles.actionTitle, { color: theme.text }]}>
-                  Reset Database
+            {/* Financial & Valuation Settings — Admin Only */}
+            {hasFinancialAccess && (
+              <View style={[styles.card, { backgroundColor: cardBg, shadowColor }]}>
+                <ThemedText style={[styles.cardTitle, { color: theme.text }]}>
+                  Financial & Valuation Parameters
                 </ThemedText>
-                <ThemedText style={[styles.actionDesc, { color: theme.textSecondary }]}>
-                  Wipe all custom modifications and restore original demo items
-                </ThemedText>
-                <Pressable
-                  onPress={handleResetData}
-                  style={({ pressed }) => [
-                    styles.resetBtn,
-                    { backgroundColor: SemanticColors.dangerLight },
-                    pressed && { opacity: 0.75 },
-                  ]}
-                >
-                  <ThemedText style={[styles.resetText, { color: SemanticColors.danger }]}>
-                    Reset All Data
-                  </ThemedText>
-                </Pressable>
+                <InfoRow
+                  label="Currency Display"
+                  value="THB (฿)"
+                  textColor={theme.text}
+                  descColor={theme.textSecondary}
+                  dividerColor={theme.backgroundSelected}
+                  showDivider
+                />
+                <InfoRow
+                  label="Estimated COGS Ratio"
+                  value="65.0%"
+                  textColor={theme.text}
+                  descColor={theme.textSecondary}
+                  dividerColor={theme.backgroundSelected}
+                  showDivider
+                />
+                <InfoRow
+                  label="Default Profit Target"
+                  value="35.0%"
+                  textColor={theme.text}
+                  descColor={theme.textSecondary}
+                  dividerColor={theme.backgroundSelected}
+                />
               </View>
-            </View>
+            )}
+
+            {/* System Controls — Admin Only */}
+            {!isUserRole && (
+              <View style={[styles.card, { backgroundColor: cardBg, shadowColor }]}>
+                <ThemedText style={[styles.cardTitle, { color: theme.text }]}>
+                  System Controls
+                </ThemedText>
+                <View style={styles.actionBlock}>
+                  <ThemedText style={[styles.actionTitle, { color: theme.text }]}>
+                    Reset Database
+                  </ThemedText>
+                  <ThemedText style={[styles.actionDesc, { color: theme.textSecondary }]}>
+                    Wipe all custom modifications and restore original demo items
+                  </ThemedText>
+                  <Pressable
+                    onPress={handleResetData}
+                    style={({ pressed }) => [
+                      styles.resetBtn,
+                      { backgroundColor: SemanticColors.dangerLight },
+                      pressed && { opacity: 0.75 },
+                    ]}
+                  >
+                    <ThemedText style={[styles.resetText, { color: SemanticColors.danger }]}>
+                      Reset All Data
+                    </ThemedText>
+                  </Pressable>
+                </View>
+              </View>
+            )}
 
             {/* About */}
             <View style={[styles.card, { backgroundColor: cardBg, shadowColor }]}>

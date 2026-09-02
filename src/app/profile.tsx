@@ -20,13 +20,13 @@ export default function ProfileScreen() {
   const [lowStockAlerts, setLowStockAlerts] = useState(true);
   const [darkModeForced, setDarkModeForced] = useState(false);
 
-  const { user, logout } = useAuth();
+  const { user, logout, hasFinancialAccess } = useAuth();
   const { products } = useInventory();
   const TOTAL_PRODUCTS = products.length;
   const IN_STOCK = products.filter((p) => getStockStatus(p) === 'in_stock').length;
   const LOW_STOCK = products.filter((p) => getStockStatus(p) === 'low_stock').length;
   const OUT_OF_STOCK = products.filter((p) => getStockStatus(p) === 'out_of_stock').length;
-  const TOTAL_VALUE = products.reduce((s, p) => s + p.price * p.quantity, 0);
+  const TOTAL_VALUE = hasFinancialAccess ? products.reduce((s, p) => s + (p.price ?? 0) * p.quantity, 0) : 0;
 
   const cardBg = isDark ? SemanticColors.cardDark : SemanticColors.card;
   const shadowColor = isDark ? '#000' : '#E4E4E7';
@@ -83,15 +83,19 @@ export default function ProfileScreen() {
                 <StatItem label="Low Stock" value={LOW_STOCK.toString()} color={SemanticColors.warning} />
                 <StatItem label="Out of Stock" value={OUT_OF_STOCK.toString()} color={SemanticColors.danger} />
               </View>
-              <View style={[styles.divider, { backgroundColor: theme.backgroundSelected }]} />
-              <View style={styles.valueRow}>
-                <ThemedText style={[styles.valueLabel, { color: theme.textSecondary }]}>
-                  Total Inventory Value
-                </ThemedText>
-                <ThemedText style={[styles.valueAmount, { color: SemanticColors.primary }]}>
-                  ฿{TOTAL_VALUE.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </ThemedText>
-              </View>
+              {hasFinancialAccess && (
+                <>
+                  <View style={[styles.divider, { backgroundColor: theme.backgroundSelected }]} />
+                  <View style={styles.valueRow}>
+                    <ThemedText style={[styles.valueLabel, { color: theme.textSecondary }]}>
+                      Total Inventory Value
+                    </ThemedText>
+                    <ThemedText style={[styles.valueAmount, { color: SemanticColors.primary }]}>
+                      ฿{TOTAL_VALUE.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </ThemedText>
+                  </View>
+                </>
+              )}
             </View>
 
             {/* Notifications */}

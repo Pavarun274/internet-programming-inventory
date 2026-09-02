@@ -1,6 +1,7 @@
 import React, { createContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { loginOnApi, registerOnApi, AuthUser } from '@/services/api';
+import { loginOnApi, AuthUser } from '@/services/api';
+import { hasFinancialAccess, canManageInventory } from '@/utils/rbac';
 
 const AUTH_STORAGE_KEY = 'inventory_auth_v1';
 
@@ -9,8 +10,9 @@ type AuthContextType = {
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  hasFinancialAccess: boolean;
+  canManageInventory: boolean;
   login: (username: string, password: string) => Promise<void>;
-  register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -50,11 +52,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await persistSession(newToken, newUser);
   }, [persistSession]);
 
-  const register = useCallback(async (username: string, email: string, password: string) => {
-    const { token: newToken, user: newUser } = await registerOnApi(username, email, password);
-    await persistSession(newToken, newUser);
-  }, [persistSession]);
-
   const logout = useCallback(async () => {
     setToken(null);
     setUser(null);
@@ -68,8 +65,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         token,
         isLoading,
         isAuthenticated: !!token,
+        hasFinancialAccess: hasFinancialAccess(user),
+        canManageInventory: canManageInventory(user),
         login,
-        register,
         logout,
       }}
     >

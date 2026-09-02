@@ -22,11 +22,9 @@ export function LoginScreen() {
   const theme = useTheme();
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
-  const { login, register } = useAuth();
+  const { login } = useAuth();
 
-  const [mode, setMode] = useState<'login' | 'register'>('login');
   const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -34,31 +32,19 @@ export function LoginScreen() {
   const inputBg = isDark ? SemanticColors.cardDark : SemanticColors.card;
   const borderColor = isDark ? '#27272A' : '#E4E4E7';
 
-  const isFormValid =
-    username.trim().length > 0 &&
-    password.length > 0 &&
-    (mode === 'login' || email.trim().length > 0);
+  const isFormValid = username.trim().length > 0 && password.length > 0;
 
   async function handleSubmit() {
     if (!isFormValid || submitting) return;
     setError('');
     setSubmitting(true);
     try {
-      if (mode === 'login') {
-        await login(username.trim(), password);
-      } else {
-        await register(username.trim(), email.trim(), password);
-      }
+      await login(username.trim(), password);
     } catch (e: any) {
       setError(e?.message || 'Something went wrong. Please try again.');
     } finally {
       setSubmitting(false);
     }
-  }
-
-  function switchMode(nextMode: 'login' | 'register') {
-    setMode(nextMode);
-    setError('');
   }
 
   return (
@@ -86,7 +72,7 @@ export function LoginScreen() {
                 </View>
                 <ThemedText style={[styles.title, { color: theme.text }]}>Inventory</ThemedText>
                 <ThemedText style={[styles.subtitle, { color: theme.textSecondary }]}>
-                  {mode === 'login' ? 'Sign in to continue' : 'Create an account to get started'}
+                  Sign in to continue
                 </ThemedText>
               </View>
 
@@ -115,21 +101,6 @@ export function LoginScreen() {
                   placeholderColor={theme.textSecondary}
                   autoCapitalize="none"
                 />
-
-                {mode === 'register' && (
-                  <LabeledInput
-                    label="Email"
-                    value={email}
-                    onChangeText={setEmail}
-                    placeholder="e.g. jdoe@example.com"
-                    bg={isDark ? '#252831' : '#F8F9FB'}
-                    borderColor={borderColor}
-                    textColor={theme.text}
-                    placeholderColor={theme.textSecondary}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                  />
-                )}
 
                 <LabeledInput
                   label="Password"
@@ -164,21 +135,9 @@ export function LoginScreen() {
                       { color: isFormValid ? '#fff' : theme.textSecondary },
                     ]}
                   >
-                    {mode === 'login' ? 'Sign In' : 'Create Account'}
+                    Sign In
                   </ThemedText>
                 )}
-              </Pressable>
-
-              <Pressable
-                onPress={() => switchMode(mode === 'login' ? 'register' : 'login')}
-                style={styles.switchModeButton}
-              >
-                <ThemedText style={[styles.switchModeText, { color: theme.textSecondary }]}>
-                  {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
-                  <ThemedText style={{ color: SemanticColors.primary, fontWeight: '700' }}>
-                    {mode === 'login' ? 'Register' : 'Sign In'}
-                  </ThemedText>
-                </ThemedText>
               </Pressable>
 
             </View>
@@ -326,13 +285,5 @@ const styles = StyleSheet.create({
   submitButtonText: {
     fontSize: 16,
     fontWeight: '700',
-  },
-  switchModeButton: {
-    alignItems: 'center',
-    paddingVertical: Spacing.two,
-  },
-  switchModeText: {
-    fontSize: 13,
-    fontWeight: '500',
   },
 });

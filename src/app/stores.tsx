@@ -1,4 +1,5 @@
-import { Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 
 import { AppHeader } from '@/components/app-header';
@@ -8,7 +9,6 @@ import { MaxContentWidth, SemanticColors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useInventory } from '@/hooks/use-inventory';
-import { STORES } from '@/constants/inventory-data';
 
 const STORE_ICONS: Record<string, any> = {
   Warehouse: { ios: 'building.2', android: 'domain', web: 'domain' },
@@ -23,10 +23,9 @@ export default function StoresScreen() {
   const cardBg = isDark ? SemanticColors.cardDark : SemanticColors.card;
   const shadowColor = isDark ? '#000' : '#E4E4E7';
 
-  const { products } = useInventory();
+  const { products, stores } = useInventory();
   const paddingBottom = Platform.select({ ios: 90, android: 100, web: 24, default: 24 });
 
-  // Calculate actual stock distribution by storeId
   const getProductCountForStore = (storeId: string) => {
     return products
       .filter((p) => p.storeIds && p.storeIds.includes(storeId))
@@ -38,8 +37,8 @@ export default function StoresScreen() {
       }, 0);
   };
 
-  const getProductsForStore = (storeId: string) => {
-    return products.filter((p) => p.storeIds && p.storeIds.includes(storeId));
+  const getItemCountForStore = (storeId: string) => {
+    return products.filter((p) => p.storeIds && p.storeIds.includes(storeId)).length;
   };
 
   return (
@@ -61,57 +60,34 @@ export default function StoresScreen() {
               </ThemedText>
             </View>
 
-            {/* Store Grid */}
+            {/* Store List */}
             <View style={styles.list}>
-              {STORES.map((store) => {
+              {stores.map((store) => {
                 const stockCount = getProductCountForStore(store.id);
+                const itemCount = getItemCountForStore(store.id);
                 return (
-                  <View
+                  <Pressable
                     key={store.id}
-                    style={[
+                    onPress={() => router.push(`/store-detail?id=${store.id}` as any)}
+                    style={({ pressed }) => [
                       styles.storeCard,
-                      { backgroundColor: cardBg, shadowColor },
+                      { backgroundColor: cardBg, shadowColor, opacity: pressed ? 0.8 : 1 },
                     ]}
                   >
                     <View style={styles.storeHeader}>
-                      <View style={styles.storeTitleWrapper}>
+                      <View style={[styles.iconBox, { backgroundColor: theme.backgroundSelected }]}>
                         <SymbolView
                           name={STORE_ICONS[store.type] || STORE_ICONS.default}
-                          size={24}
+                          size={22}
                           tintColor={theme.text}
                         />
-                        <View>
-                          <ThemedText style={[styles.storeName, { color: theme.text }]}>
-                            {store.name}
-                          </ThemedText>
-                          <ThemedText style={[styles.storeType, { color: theme.textSecondary }]}>
-                            {store.type} · {store.status}
-                          </ThemedText>
-                        </View>
                       </View>
-                      <View
-                        style={[
-                          styles.statusBadge,
-                          {
-                            backgroundColor:
-                              store.status === 'Operational'
-                                ? SemanticColors.successLight
-                                : SemanticColors.warningLight,
-                          },
-                        ]}
-                      >
-                        <ThemedText
-                          style={[
-                            styles.statusText,
-                            {
-                              color:
-                                store.status === 'Operational'
-                                  ? SemanticColors.success
-                                  : SemanticColors.warning,
-                            },
-                          ]}
-                        >
-                          {store.status}
+                      <View style={styles.storeTitleWrapper}>
+                        <ThemedText style={[styles.storeName, { color: theme.text }]} numberOfLines={1}>
+                          {store.name}
+                        </ThemedText>
+                        <ThemedText style={[styles.storeType, { color: theme.textSecondary }]}>
+                          {store.type} · {itemCount} items
                         </ThemedText>
                       </View>
                     </View>
@@ -122,53 +98,30 @@ export default function StoresScreen() {
                       <View style={styles.detailRow}>
                         <SymbolView
                           name={{ ios: 'mappin.and.ellipse', android: 'place', web: 'place' }}
-                          size={14}
+                          size={13}
                           tintColor={theme.textSecondary}
                         />
-                        <ThemedText style={[styles.detailText, { color: theme.text, flex: 1 }]}>
+                        <ThemedText
+                          style={[styles.detailText, { color: theme.textSecondary, flex: 1 }]}
+                          numberOfLines={1}
+                        >
                           {store.address}
                         </ThemedText>
                       </View>
                       <View style={styles.detailRow}>
                         <SymbolView
                           name={{ ios: 'person.fill', android: 'person', web: 'person' }}
-                          size={14}
+                          size={13}
                           tintColor={theme.textSecondary}
                         />
                         <ThemedText style={[styles.detailText, { color: theme.textSecondary }]}>
-                          Manager: <ThemedText style={{ color: theme.text }}>{store.manager}</ThemedText>
+                          {store.manager}
                         </ThemedText>
-                      </View>
-                      <View style={styles.detailRow}>
-                        <SymbolView
-                          name={{ ios: 'phone.fill', android: 'phone', web: 'phone' }}
-                          size={14}
-                          tintColor={theme.textSecondary}
-                        />
+                        <ThemedText style={[styles.detailText, { color: theme.textSecondary }]}>·</ThemedText>
                         <ThemedText style={[styles.detailText, { color: theme.textSecondary }]}>
-                          Phone: <ThemedText style={{ color: theme.text }}>{store.phone}</ThemedText>
+                          {store.phone}
                         </ThemedText>
                       </View>
-                    </View>
-
-                    {/* Products in this store breakdown */}
-                    <View style={styles.storeProductsPreview}>
-                      <ThemedText style={[styles.previewHeading, { color: theme.textSecondary }]}>
-                        INVENTORY BREAKDOWN ({getProductsForStore(store.id).length} ITEMS)
-                      </ThemedText>
-                      {getProductsForStore(store.id).map((p) => {
-                        const qtyInStore = p.storeQuantities ? (p.storeQuantities[store.id] ?? 0) : p.quantity;
-                        return (
-                          <View key={p.id} style={styles.previewRow}>
-                            <ThemedText style={[styles.previewProductName, { color: theme.text }]} numberOfLines={1}>
-                              {p.name}
-                            </ThemedText>
-                            <ThemedText style={[styles.previewProductQty, { color: SemanticColors.primary }]}>
-                              {qtyInStore} units
-                            </ThemedText>
-                          </View>
-                        );
-                      })}
                     </View>
 
                     <View style={[styles.divider, { backgroundColor: theme.backgroundSelected }]} />
@@ -177,11 +130,18 @@ export default function StoresScreen() {
                       <ThemedText style={[styles.stockLabel, { color: theme.textSecondary }]}>
                         Total Stock Stored:
                       </ThemedText>
-                      <ThemedText style={[styles.stockValue, { color: SemanticColors.primary }]}>
-                        {stockCount.toLocaleString()} units
-                      </ThemedText>
+                      <View style={styles.footerRight}>
+                        <ThemedText style={[styles.stockValue, { color: SemanticColors.primary }]}>
+                          {stockCount.toLocaleString()} units
+                        </ThemedText>
+                        <SymbolView
+                          name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
+                          size={16}
+                          tintColor={theme.textSecondary}
+                        />
+                      </View>
                     </View>
-                  </View>
+                  </Pressable>
                 );
               })}
             </View>
@@ -230,17 +190,19 @@ const styles = StyleSheet.create({
   },
   storeHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  storeTitleWrapper: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    flex: 1,
   },
-  storeIcon: {
-    fontSize: 24,
+  iconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  storeTitleWrapper: {
+    flex: 1,
   },
   storeName: {
     fontSize: 16,
@@ -255,6 +217,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
+    flexShrink: 0,
   },
   statusText: {
     fontSize: 11,
@@ -265,23 +228,26 @@ const styles = StyleSheet.create({
     marginVertical: 12,
   },
   storeDetails: {
-    gap: 8,
+    gap: 6,
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   detailText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '500',
-    lineHeight: 18,
-    flexShrink: 1,
   },
   storeFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  footerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   stockLabel: {
     fontSize: 13,
@@ -289,31 +255,6 @@ const styles = StyleSheet.create({
   },
   stockValue: {
     fontSize: 15,
-    fontWeight: '700',
-  },
-  storeProductsPreview: {
-    marginTop: 12,
-    gap: 6,
-  },
-  previewHeading: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  previewRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 2,
-  },
-  previewProductName: {
-    fontSize: 13,
-    fontWeight: '500',
-    flex: 1,
-  },
-  previewProductQty: {
-    fontSize: 13,
     fontWeight: '700',
   },
 });

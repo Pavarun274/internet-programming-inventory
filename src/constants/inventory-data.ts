@@ -19,7 +19,7 @@ export type Product = {
   storeQuantities?: Record<string, number>;
   quantity: number;
   minQuantity: number;
-  price: number;
+  price?: number;
   supplier: string;
   lastUpdated: string;
   description: string;
@@ -128,9 +128,7 @@ export const RECENT_ACTIVITY: RecentActivity[] = [
   },
 ];
 
-// Fallback threshold for products with no minQuantity of their own — the
-// backend's products table has no such column, so everything loaded from the
-// API arrives with minQuantity 0 and would never register as low stock.
+// Fallback threshold for products with no minQuantity of their own set.
 export const DEFAULT_MIN_QUANTITY = 5;
 
 export function getStockStatus(product: Product): StockStatus {
@@ -142,7 +140,7 @@ export function getStockStatus(product: Product): StockStatus {
 
 export function getStatsFromProducts(products: Product[]) {
   const totalProducts = products.length;
-  const totalValue = products.reduce((sum, p) => sum + p.price * p.quantity, 0);
+  const totalValue = products.reduce((sum, p) => sum + (p.price != null ? p.price * p.quantity : 0), 0);
   const lowStock = products.filter((p) => getStockStatus(p) === 'low_stock').length;
   const outOfStock = products.filter((p) => getStockStatus(p) === 'out_of_stock').length;
   return { totalProducts, totalValue, lowStock, outOfStock };

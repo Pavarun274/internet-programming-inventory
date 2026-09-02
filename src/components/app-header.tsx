@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, View, ViewStyle, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 
 import { useMenu } from '@/contexts/menu-context';
 import { ThemedText } from './themed-text';
@@ -12,9 +13,10 @@ type AppHeaderProps = {
   title?: string;
   style?: ViewStyle;
   rightAction?: React.ReactNode;
+  onBackPress?: () => void;
 };
 
-export function AppHeader({ title = 'Inventory', style, rightAction }: AppHeaderProps) {
+export function AppHeader({ title = 'Inventory', style, rightAction, onBackPress }: AppHeaderProps) {
   const { openMenu } = useMenu();
   const theme = useTheme();
   const scheme = useColorScheme();
@@ -39,21 +41,42 @@ export function AppHeader({ title = 'Inventory', style, rightAction }: AppHeader
         style,
       ]}
     >
-      {/* Hamburger Button */}
-      <Pressable
-        onPress={openMenu}
-        style={({ pressed }) => [
-          styles.hamburgerBtn,
-          { backgroundColor: theme.backgroundSelected, opacity: pressed ? 0.7 : 1 },
-        ]}
-      >
-        <View style={[styles.hLine, { backgroundColor: SemanticColors.primary }]} />
-        <View style={[styles.hLine, { backgroundColor: SemanticColors.primary, width: 14 }]} />
-        <View style={[styles.hLine, { backgroundColor: SemanticColors.primary }]} />
-      </Pressable>
+      {/* Back Button or Hamburger */}
+      {onBackPress ? (
+        <Pressable
+          onPress={onBackPress}
+          style={({ pressed }) => [
+            styles.hamburgerBtn,
+            { backgroundColor: theme.backgroundSelected, opacity: pressed ? 0.7 : 1 },
+          ]}
+        >
+          <SymbolView
+            name={{ ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' }}
+            size={20}
+            tintColor={SemanticColors.primary}
+            weight="bold"
+          />
+        </Pressable>
+      ) : (
+        <Pressable
+          onPress={openMenu}
+          style={({ pressed }) => [
+            styles.hamburgerBtn,
+            { backgroundColor: theme.backgroundSelected, opacity: pressed ? 0.7 : 1 },
+          ]}
+        >
+          <View style={[styles.hLine, { backgroundColor: SemanticColors.primary }]} />
+          <View style={[styles.hLine, { backgroundColor: SemanticColors.primary, width: 14 }]} />
+          <View style={[styles.hLine, { backgroundColor: SemanticColors.primary }]} />
+        </Pressable>
+      )}
 
       {/* Title */}
-      <ThemedText style={[styles.title, { color: theme.text }]}>{title}</ThemedText>
+      <View style={styles.titleContainer}>
+        <ThemedText style={[styles.title, { color: theme.text }]} numberOfLines={1}>
+          {title}
+        </ThemedText>
+      </View>
 
       {/* Avatar or Custom Right Action */}
       {rightAction ? (
@@ -93,7 +116,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    marginRight: 'auto',
     zIndex: 10,
   },
   hLine: {
@@ -101,15 +123,15 @@ const styles = StyleSheet.create({
     width: 18,
     borderRadius: 2,
   },
+  titleContainer: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 8,
+  },
   title: {
     fontSize: 17,
     fontWeight: '700',
     letterSpacing: 0.3,
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    textAlign: 'center',
-    zIndex: 1,
   },
   avatarCircle: {
     width: 38,
@@ -117,7 +139,6 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 'auto',
     zIndex: 10,
   },
   avatarText: {

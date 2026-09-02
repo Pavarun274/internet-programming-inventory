@@ -27,6 +27,9 @@ const HIDDEN_TABS = [
   { name: 'finances', href: '/finances' },
   { name: 'settings', href: '/settings' },
   { name: 'profile', href: '/profile' },
+  { name: 'product-detail', href: '/product-detail' },
+  { name: 'store-detail', href: '/store-detail' },
+  { name: 'category-detail', href: '/category-detail' },
 ];
 
 export default function AppTabs() {
@@ -40,12 +43,14 @@ export default function AppTabs() {
               <TabBtn icon={tab.icon} label={tab.label} isAdd={tab.isAdd} />
             </TabTrigger>
           ))}
-          {/* Hidden triggers for drawer/profile routing */}
-          <View style={{ display: 'none' }}>
-            {HIDDEN_TABS.map((tab) => (
-              <TabTrigger key={tab.name} name={tab.name} href={tab.href as any} />
-            ))}
-          </View>
+          {/* Hidden triggers for drawer/profile routing. TabList only discovers
+              TabTrigger elements that are direct descendants (or nested only
+              inside Fragments/TabList) — wrapping them in a plain View would
+              hide them from route registration entirely, so we style each
+              trigger to be invisible instead of wrapping the group. */}
+          {HIDDEN_TABS.map((tab) => (
+            <TabTrigger key={tab.name} name={tab.name} href={tab.href as any} style={styles.hiddenTrigger} />
+          ))}
         </BottomNavBar>
       </TabList>
     </Tabs>
@@ -160,4 +165,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#fff',
   },
+  hiddenTrigger: {
+    position: 'absolute',
+    width: 0,
+    height: 0,
+    opacity: 0,
+    pointerEvents: 'none',
+  } as any,
 });
