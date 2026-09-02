@@ -49,3 +49,6 @@ example
 # generated native folders
 /ios
 /android
+
+# uploaded product images (server-side storage, not source)
+/uploads
