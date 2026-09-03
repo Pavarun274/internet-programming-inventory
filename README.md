@@ -27,16 +27,71 @@ You can start developing by editing the files inside the **app** directory. This
 
 ## Project structure
 
-- **Routing**: `src/app/` (Expo Router)
-  - `src/app/_layout.tsx` — Root navigation layout
-  - `src/app/index.tsx` — Dashboard (stats, charts, recent activities)
-  - `src/app/explore.tsx` — Products screen (search, sort, filter by category)
-  - `src/app/add.tsx` — Add / Edit product form (image picker integration)
-  - `src/app/categories.tsx` — Category list & details
-  - `src/app/profile.tsx` — User profile and preferences
-- **Components**: `src/components/` — reusable UI components. Platform-specific files (e.g. `animated-icon.web.tsx`, `app-tabs.web.tsx`) optimize UI between native apps and web.
-- **State management**: `src/contexts/inventory-context.tsx` and the `src/hooks/use-inventory.ts` hook
-- **Theme**: `src/constants/theme.ts` & `src/hooks/use-theme.ts` (supports dark / light mode)
+```
+Inventory/
+├── server.js                    # Express + MySQL API (auth, RBAC, products, stores, stock movements)
+├── products.json                # Sample/seed product data
+├── uploads/                     # Uploaded product images served at /uploads (gitignored)
+├── scripts/
+│   └── reset-project.js         # Moves starter code to app-example/ and resets src/app
+├── tests/                       # Test suite
+├── .env.example                 # Template for server environment variables
+└── src/
+    ├── app/                     # Expo Router screens (file-based routing)
+    │   ├── _layout.tsx          # Root navigation layout
+    │   ├── index.tsx            # Dashboard (stats, charts, recent activity)
+    │   ├── explore.tsx          # Products screen (search, sort, filter by category)
+    │   ├── add.tsx              # Add / Edit product form (image picker)
+    │   ├── product-detail.tsx   # Single product detail view
+    │   ├── categories.tsx       # Category list
+    │   ├── category-detail.tsx  # Single category detail view
+    │   ├── stores.tsx           # Store list
+    │   ├── store-detail.tsx     # Single store detail view
+    │   ├── finances.tsx         # Financial metrics/analytics (admin only)
+    │   ├── settings.tsx         # App/system settings
+    │   └── profile.tsx          # User profile and preferences
+    ├── components/              # Reusable UI components
+    │   ├── login-screen.tsx     # Username/password login form
+    │   ├── app-header.tsx       # Top header bar
+    │   ├── app-tabs.tsx / .web.tsx     # Tab navigation (native / web variants)
+    │   ├── drawer-menu.tsx      # Side drawer navigation
+    │   ├── product-card.tsx     # Product list item card
+    │   ├── category-chip.tsx    # Category filter chip
+    │   ├── stat-card.tsx        # Dashboard stat tile
+    │   ├── stock-badge.tsx      # Stock level indicator
+    │   ├── search-bar.tsx       # Search input
+    │   ├── animated-icon.tsx / .web.tsx / .module.css  # Animated icon (native / web variants)
+    │   ├── themed-text.tsx / themed-view.tsx           # Theme-aware base components
+    │   ├── web-badge.tsx        # Web-only badge
+    │   ├── hint-row.tsx         # Inline hint/help row
+    │   ├── external-link.tsx    # Opens links in the in-app/external browser
+    │   └── ui/collapsible.tsx   # Collapsible section
+    ├── contexts/                # React context providers (global state)
+    │   ├── auth-context.tsx     # Auth/session state (JWT token, current user)
+    │   ├── inventory-context.tsx  # Product/inventory state
+    │   └── menu-context.tsx     # Drawer/menu open state
+    ├── hooks/                   # Custom hooks
+    │   ├── use-auth.ts          # Access auth-context
+    │   ├── use-inventory.ts     # Access inventory-context
+    │   ├── use-theme.ts         # Resolve current theme
+    │   └── use-color-scheme.ts / .web.ts  # Native / web color scheme detection
+    ├── services/
+    │   └── api.ts               # Fetch wrapper — attaches x-api-key / JWT, calls the backend
+    ├── utils/
+    │   └── rbac.ts              # Role-based access control helpers (admin vs user)
+    ├── constants/
+    │   ├── theme.ts             # Colors, spacing, typography (light/dark)
+    │   ├── category-meta.ts     # Category display metadata (icons, labels)
+    │   ├── inventory-data.ts    # Static inventory constants
+    │   └── products.json        # Local product fixtures
+    └── global.css                # Global styles (web)
+```
+
+- **Routing**: `src/app/` uses [Expo Router](https://docs.expo.dev/router/introduction) file-based routing — each file under `src/app/` becomes a screen/route.
+- **Platform-specific files**: files suffixed `.web.tsx` (e.g. `animated-icon.web.tsx`, `app-tabs.web.tsx`) override the default implementation on web only; Metro picks the right file automatically per platform.
+- **State management**: global state lives in `src/contexts/` (auth, inventory, menu), exposed through matching hooks in `src/hooks/`.
+- **Backend access**: all API calls go through `src/services/api.ts`, which attaches the API key/JWT token; `src/utils/rbac.ts` gates UI features by role.
+- **Theme**: `src/constants/theme.ts` & `src/hooks/use-theme.ts` (supports dark / light mode).
 
 ## Running on Android / iOS
 
@@ -62,6 +117,46 @@ You can start developing by editing the files inside the **app** directory. This
 ## Backend
 
 This app talks to an Express + MySQL API in [server.js](server.js) (`npm run server`). Copy `.env.example` to `.env` and fill in your own DB credentials and `EXPO_PUBLIC_API_KEY` — `.env` itself is gitignored and not included in this repo.
+
+## Authentication & Access Codes
+
+The app uses two layers of authentication: an **API key** (lets the app talk to the backend) and **username / password** (per-user login).
+
+### 1. API key (`EXPO_PUBLIC_API_KEY`)
+- A shared secret embedded in the app at build time. It blocks any request that doesn't come from the app itself from hitting the write endpoints (see [server.js:48](server.js:48)).
+- Set it in `.env`:
+  ```env
+  EXPO_PUBLIC_API_KEY=changeme
+  ```
+- Must match on both the server (`.env`) and the client — since the variable is prefixed `EXPO_PUBLIC_`, it gets bundled into the client at build time automatically. **Never leave it as `changeme` in production.**
+
+### 2. Username / Password (user accounts)
+- **Self-registration is disabled** — calling `POST /api/auth/register` always returns an error (see [server.js:146](server.js:146)). New accounts must be created directly in the database by an administrator.
+- There are two roles: `admin` (full access — sees financial/price data and can edit stock) and `user` (can view products but not prices/financial data, and cannot edit anything — see `requireApiKey` and `requireFinancialAccess` in [server.js](server.js)).
+- Log in from the app's login screen (or call `POST /api/auth/login` with the `x-api-key` header). The server returns a JWT token (valid for 7 days) that the app stores and attaches to subsequent authenticated requests.
+
+### 3. Database setup & sample accounts
+This repo does not include the database dump — `ip_std6730202700.sql` is provided separately (submitted alongside this code, not committed to git). Import it into MySQL to get the full schema (products, stores, users, etc.) plus these sample accounts:
+
+| Role  | Username | Password    |
+|-------|----------|-------------|
+| admin | admin    | password123 |
+| user  | user01   | user123     |
+
+```bash
+mysql -u <db_user> -p <db_name> < ip_std6730202700.sql
+```
+
+> ⚠️ These sample accounts are for local development only — do not reuse them in any staging/production database.
+
+### 4. Security-related environment variables
+| Variable | Purpose |
+| --- | --- |
+| `EXPO_PUBLIC_API_KEY` | API key that must be sent with write requests (`x-api-key` header) |
+| `JWT_SECRET` | Signs and verifies JWT login tokens — **must be changed from `changeme`/`secret` before production use** |
+| `DB_USER` / `DB_PASSWORD` / `DB_NAME` / `DB_HOST` / `DB_PORT` | MySQL connection credentials |
+
+> ⚠️ Never commit `.env` or real passwords/API keys to git — `.env.example` is a template only.
 
 ## Get a fresh project
 

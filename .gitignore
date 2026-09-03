@@ -52,3 +52,6 @@ example
 
 # uploaded product images (server-side storage, not source)
 /uploads
+
+# database dump — submitted separately, not part of the repo
+*.sql
