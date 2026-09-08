@@ -136,7 +136,7 @@ The app uses two layers of authentication: an **API key** (lets the app talk to 
 - Log in from the app's login screen (or call `POST /api/auth/login` with the `x-api-key` header). The server returns a JWT token (valid for 7 days) that the app stores and attaches to subsequent authenticated requests.
 
 ### 3. Database setup & sample accounts
-This repo does not include the database dump — `ip_std6730202700.sql` is provided separately (submitted alongside this code, not committed to git). Import it into MySQL to get the full schema (products, stores, users, etc.) plus these sample accounts:
+This repo includes a database dump, [`ip_std6730202700.sql`](ip_std6730202700.sql), with the full schema (products, stores, users, etc.) plus these sample accounts. Import it into MySQL:
 
 | Role  | Username | Password    |
 |-------|----------|-------------|
