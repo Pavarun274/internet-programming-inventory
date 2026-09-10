@@ -226,6 +226,33 @@ app.get('/api/products', optionalAuthenticateToken, async (req, res) => {
   }
 });
 
+// GET public product feed — no auth, no API key, for external consumers
+// (e.g. the analytics script). Must stay registered before /api/products/:id
+// or Express would match "shared" as an :id.
+app.get('/api/products/shared', cors(), async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT p.product_id AS id, p.name, COALESCE(c.category_name, 'Uncategorized') AS category,
+              p.price, p.quantity AS stock, p.sold, p.image
+       FROM products p
+       LEFT JOIN categories c ON c.category_id = p.category_id`
+    );
+    res.json(
+      rows.map((p) => ({
+        id: p.id,
+        name: p.name,
+        category: p.category,
+        price: Number(p.price),
+        stock: p.stock,
+        sold: p.sold,
+        image: p.image,
+      }))
+    );
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // GET single product by id — strips price field when requested by 'user' role
 app.get('/api/products/:id', optionalAuthenticateToken, async (req, res) => {
   const { id } = req.params;
@@ -522,7 +549,10 @@ app.get('/api/transactions/recent', async (req, res) => {
   }
 });
 
-// POST record a new stock movement
+// POST record a new stock movement — for 'out' movements, decrements
+// products.quantity and increments products.sold in the same transaction
+// as the movement insert, so a mid-request failure can't leave sold
+// updated without the movement logged (or vice versa).
 app.post('/api/stock-movements', requireApiKey, async (req, res) => {
   const { product_id, user_id, type, quantity, note } = req.body;
   if (!product_id || !user_id || !type || quantity === undefined) {
@@ -532,17 +562,32 @@ app.post('/api/stock-movements', requireApiKey, async (req, res) => {
     return res.status(400).json({ error: 'type must be one of: in, out, adjust.' });
   }
 
+  const conn = await pool.getConnection();
   try {
-    const [result] = await pool.query(
+    await conn.beginTransaction();
+
+    const [result] = await conn.query(
       'INSERT INTO stock_movements (product_id, user_id, type, quantity, note) VALUES (?, ?, ?, ?, ?)',
       [product_id, user_id, type, quantity, note || null]
     );
+
+    if (type === 'out') {
+      await conn.query(
+        'UPDATE products SET quantity = quantity - ?, sold = sold + ? WHERE product_id = ?',
+        [quantity, quantity, product_id]
+      );
+    }
+
+    await conn.commit();
     res.status(201).json({
       message: 'Stock movement recorded successfully',
       movementId: result.insertId
     });
   } catch (error) {
+    await conn.rollback();
     res.status(500).json({ error: error.message });
+  } finally {
+    conn.release();
   }
 });
 
