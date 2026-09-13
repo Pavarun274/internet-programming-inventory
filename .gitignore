@@ -52,3 +52,8 @@ example
 
 # uploaded product images (server-side storage, not source)
 /uploads
+
+# analysis script output (generated, not source)
+/analysis/output/*
+!/analysis/output/.gitkeep
+.DS_Store

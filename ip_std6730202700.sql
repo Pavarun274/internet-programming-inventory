@@ -62,7 +62,8 @@ CREATE TABLE `products` (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `image` text,
   `supplier` varchar(255) DEFAULT NULL,
-  `min_quantity` int NOT NULL DEFAULT '0'
+  `min_quantity` int NOT NULL DEFAULT '0',
+  `sold` int NOT NULL DEFAULT '0' COMMENT 'Cumulative units sold (out movements)'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
